@@ -82,11 +82,18 @@ impl DenseRetriever {
     ///
     /// Vector of (document_id, score) pairs, sorted by score descending
     pub fn retrieve(&self, query_embedding: &[f32], k: usize) -> Vec<(u32, f32)> {
+        if query_embedding.is_empty() {
+            return Vec::new();
+        }
+        
         let mut scored: Vec<(u32, f32)> = self.documents
             .iter()
-            .map(|(doc_id, doc_embedding)| {
+            .filter_map(|(doc_id, doc_embedding)| {
+                if doc_embedding.len() != query_embedding.len() {
+                    return None;
+                }
                 let score = Self::cosine_similarity(doc_embedding, query_embedding);
-                (*doc_id, score)
+                Some((*doc_id, score))
             })
             .collect();
         

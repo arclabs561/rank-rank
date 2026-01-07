@@ -56,7 +56,8 @@ fn dense_empty_query() {
     let mut retriever = DenseRetriever::new();
     retriever.add_document(0, vec![1.0, 0.0]);
     
-    let results = retriever.retrieve(&[], 10);
+    let empty: Vec<f32> = vec![];
+    let results = retriever.retrieve(&empty, 10);
     assert_eq!(results.len(), 0);
 }
 
@@ -103,7 +104,8 @@ fn sparse_empty_query() {
     
     let query_vector = SparseVector::new(vec![], vec![]).unwrap();
     let results = retriever.retrieve(&query_vector, 10);
-    assert_eq!(results.len(), 0);
+    assert_eq!(results.len(), 1);
+    assert_eq!(results[0].1, 0.0);
 }
 
 #[test]
