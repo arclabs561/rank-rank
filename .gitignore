@@ -47,3 +47,16 @@ docs/output/
 *.log
 *.bak
 
+# Secrets and credentials
+.env
+.env.local
+.env.*.local
+*.key
+*.pem
+secrets/
+credentials/
+*.secret
+
+# API keys (check scripts for references)
+# Note: Scripts use environment variables, never hardcode keys
+
