@@ -113,7 +113,7 @@ cargo run --example neural_ltr_training
 
 ## Status
 
-✅ **Core functionality implemented**:
+ **Core functionality implemented**:
 - LambdaRank with NDCG-aware gradients
 - Neural LTR interface using rank-soft
 

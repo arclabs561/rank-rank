@@ -14,17 +14,17 @@ After deep analysis of the codebase, documentation, and ranking pipeline, here a
 
 2. **rank-fusion**: Combines ranked lists from multiple retrievers (RRF, ISR, CombMNZ, etc.)
    - **Scope**: Post-retrieval fusion (assumes you have results)
-   - **Status**: ✅ Complete and well-documented
+   - **Status**:  Complete and well-documented
 
 3. **rank-rerank**: Reranking and late interaction scoring (MaxSim/ColBERT) + cross-encoder trait
    - **Scope**: Stage 2 (1000 → 100 candidates)
-   - **Status**: ✅ MaxSim complete, cross-encoder trait exists but disabled
+   - **Status**:  MaxSim complete, cross-encoder trait exists but disabled
    - **Note**: Renamed from rank-refine
    - **Gap**: Cross-encoder implementation disabled (waiting for ort 2.0)
 
 4. **rank-soft**: Differentiable ranking/sorting for ML training
    - **Scope**: Training-time operations (soft ranking, Spearman loss)
-   - **Status**: ✅ Complete
+   - **Status**:  Complete
    - **Note**: Renamed from rank-relax
 
 5. **rank-learn**: Learning to Rank frameworks (LambdaRank, XGBoost, etc.)
@@ -33,11 +33,11 @@ After deep analysis of the codebase, documentation, and ranking pipeline, here a
 
 6. **rank-eval**: Evaluation metrics (NDCG, MAP, MRR, etc.)
    - **Scope**: Post-hoc evaluation
-   - **Status**: ✅ Complete
+   - **Status**:  Complete
 
 7. **rank-sparse**: Sparse vector utilities (dot product, pruning)
    - **Scope**: Utility library for sparse operations
-   - **Status**: ⚠️ Exists but undocumented in rank-rank
+   - **Status**:  Exists but undocumented in rank-rank
    - **Issue**: Not mentioned in README, not included in scripts
 
 ### Documented Pipeline (from rank-refine)
@@ -51,13 +51,13 @@ After deep analysis of the codebase, documentation, and ranking pipeline, here a
 ```
 
 **Current Coverage**:
-- ✅ Stage 1: rank-retrieve (created, needs implementation)
-- ✅ Stage 2: MaxSim reranking (rank-rerank, renamed from rank-refine)
-- ⚠️ Stage 3: Cross-encoder trait exists but disabled (in rank-rerank)
+-  Stage 1: rank-retrieve (created, needs implementation)
+-  Stage 2: MaxSim reranking (rank-rerank, renamed from rank-refine)
+-  Stage 3: Cross-encoder trait exists but disabled (in rank-rerank)
 
 ## Critical Gaps
 
-### 1. rank-retrieve: First-Stage Retrieval (✅ CREATED, needs implementation)
+### 1. rank-retrieve: First-Stage Retrieval ( CREATED, needs implementation)
 
 **Problem**: The pipeline assumes you have retrieval results, but no library provides:
 - BM25 retrieval (inverted index, term matching)
@@ -91,7 +91,7 @@ After deep analysis of the codebase, documentation, and ranking pipeline, here a
 - Pipeline diagram shows cross-encoder as final stage
 
 **Recommendation**: 
-- **Option A**: Enable in rank-rerank when ort 2.0 is stable ✅ (chosen)
+- **Option A**: Enable in rank-rerank when ort 2.0 is stable  (chosen)
 - **Option B**: Create separate crate for model-based reranking (not needed)
 - **Option C**: Keep trait in rank-rerank, provide ONNX/PyTorch bindings separately
 
@@ -219,7 +219,7 @@ python3 scripts/introspect_rank_eval.py ./rank-eval
 
 ### Immediate (Fix Scripts & Docs)
 
-1. ✅ **Fixed**: Path resolution in sync/verify scripts
+1.  **Fixed**: Path resolution in sync/verify scripts
 2. **Fix**: Make `inspect_all_rank_readmes.sh` discover READMEs dynamically
 3. **Fix**: Update README path examples to use correct relative paths
 4. **Decide**: Document rank-sparse or exclude from scripts

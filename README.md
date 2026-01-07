@@ -1,10 +1,10 @@
 # rank-rank
 
-**Monorepo**: Central repository for all rank-* crates.
+Monorepo: Central repository for all rank-* crates.
 
-**Helm Design**: Central control and introspection for all rank-* crates.
+Helm Design: Central control and introspection for all rank-* crates.
 
-This is the main repository containing all rank-* crates, organized as a monorepo with shared tooling and coordination.
+Main repository containing all rank-* crates, organized as a monorepo with shared tooling and coordination.
 
 ## Purpose
 
@@ -17,15 +17,15 @@ This directory contains tools and scripts that apply to multiple rank-* reposito
 - `rank-eval` - Ranking evaluation metrics
 - `rank-sparse` - Sparse vector utilities
 
-## Helm Design Philosophy
+## Helm Design
 
-**rank-rank is the "helm"** - the central control point that can:
-1. **Introspect** all rank-* repos to discover what's actually implemented
-2. **Verify** documentation matches reality
-3. **Sync** shared configuration (Cursor rules, etc.)
-4. **Provide** shared tools (VLM inspection, visualization patterns)
+rank-rank is the central control point that can:
+1. Introspect all rank-* repos to discover what's actually implemented
+2. Verify documentation matches reality
+3. Sync shared configuration (Cursor rules, etc.)
+4. Provide shared tools (VLM inspection, visualization patterns)
 
-The key principle: **You should immediately be able to introspect and tell if something is benefiting us.**
+Principle: You should immediately be able to introspect and tell if something is benefiting us.
 
 ## Structure
 
@@ -57,21 +57,21 @@ python3 scripts/introspect_rank_eval.py rank-eval
 ./scripts/introspect_all_rank_repos.sh
 ```
 
-**Purpose**: The README might say "supports NDCG" but the code might have 20 metrics. Introspection reveals the gap between documentation and reality.
+Purpose: The README might say "supports NDCG" but the code might have 20 metrics. Introspection reveals the gap between documentation and reality.
 
 ### Example Output
 
 ```
 ## Metrics
-**Total Implemented**: 20
-**In README**: 12
-**Missing from README**: 8
+Total Implemented: 20
+In README: 12
+Missing from README: 8
 
 ### Binary Metrics
-- ✅ `ndcg_at_k()`
-- ✅ `precision_at_k()`
-- ❌ `err_at_k()`  # Missing from README!
-- ❌ `rbp_at_k()`  # Missing from README!
+- `ndcg_at_k()`
+- `precision_at_k()`
+- `err_at_k()`  # Missing from README!
+- `rbp_at_k()`  # Missing from README!
 ...
 ```
 
@@ -87,11 +87,11 @@ Generate PDF and HTML documentation from Typst source:
 ./scripts/generate_typst_docs.sh rank-relax
 ```
 
-**Output**: Each repo's `docs/output/` directory contains:
+Output: Each repo's `docs/output/` directory contains:
 - `{repo}_documentation.pdf` - PDF version
 - `{repo}_documentation.html` - HTML version
 
-**Source**: Each repo has `docs/main.typ` with Typst source.
+Source: Each repo has `docs/main.typ` with Typst source.
 
 See `README_TYPST.md` for details.
 
@@ -111,7 +111,7 @@ export OPENAI_API_KEY="sk-..."
 ./scripts/inspect_all_rank_readmes.sh
 ```
 
-**Features:**
+Features:
 - Renders markdown with mdpreview (GitHub-flavored)
 - Takes full-page screenshots with Playwright
 - Uses VLM (Claude Vision or GPT-4 Vision) for visual critique
@@ -127,7 +127,7 @@ cd rank-fusion/hack/viz
 uv run generate_rrf_real_data.py
 ```
 
-**Quality Standards:**
+Quality Standards:
 - Real data from actual code execution
 - Statistical depth (distribution fitting, hypothesis testing)
 - Large sample sizes (1000+)
@@ -226,13 +226,13 @@ export OPENAI_API_KEY="sk-..."         # Fallback
     ./scripts/inspect_all_rank_readmes.sh
 ```
 
-## Benefits of Helm Design
+## Benefits
 
-1. **Single Source of Truth**: rank-rank knows what all repos have
-2. **Gap Detection**: Immediately see what's implemented vs documented
-3. **Consistency**: Shared tools and patterns across all repos
-4. **Introspection**: Can verify if work is actually benefiting us
-5. **Centralized Control**: Update once, apply everywhere
+1. Single Source of Truth: rank-rank knows what all repos have
+2. Gap Detection: Immediately see what's implemented vs documented
+3. Consistency: Shared tools and patterns across all repos
+4. Introspection: Can verify if work is actually benefiting us
+5. Centralized Control: Update once, apply everywhere
 
 ## License
 

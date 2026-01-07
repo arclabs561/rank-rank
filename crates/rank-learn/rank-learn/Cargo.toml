@@ -34,6 +34,10 @@ default = []
 criterion = { workspace = true }
 proptest = { workspace = true }
 
+[[test]]
+name = "property_tests"
+path = "tests/property_tests.rs"
+
 [[example]]
 name = "lambdarank_training"
 path = "examples/lambdarank_training.rs"

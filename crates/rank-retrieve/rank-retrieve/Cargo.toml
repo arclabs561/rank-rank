@@ -43,4 +43,5 @@ name = "full_pipeline"
 path = "examples/full_pipeline.rs"
 
 [dev-dependencies]
+proptest = { workspace = true }
 
