@@ -11,7 +11,7 @@ license = "MIT OR Apache-2.0"
 authors = ["Arc <attobop@gmail.com>"]
 
 [workspace.dependencies]
-rank-soft = { path = "../../rank-soft", package = "rank-soft" }
+rank-soft = { path = "../rank-soft", package = "rank-soft" }
 pyo3 = { version = "0.24", features = ["extension-module", "abi3-py37"] }
 criterion = "0.5"
 proptest = "1"

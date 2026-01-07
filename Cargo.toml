@@ -1,20 +1,6 @@
 [workspace]
-members = [
-    "crates/rank-retrieve/rank-retrieve",
-    "crates/rank-retrieve/rank-retrieve-python",
-    "crates/rank-fusion/rank-fusion",
-    "crates/rank-fusion/rank-fusion-python",
-    "crates/rank-rerank/rank-rerank-core",
-    "crates/rank-rerank/rank-rerank-python",
-    "crates/rank-soft",
-    "crates/rank-soft/rank-soft-python",
-    "crates/rank-learn/rank-learn",
-    "crates/rank-learn/rank-learn-python",
-    "crates/rank-eval/rank-eval",
-    "crates/rank-eval/rank-eval-python",
-    "crates/rank-sparse/rank-sparse",
-    "crates/rank-sparse/rank-sparse-python",
-]
+# Note: Each crate has its own workspace, so we don't include them here
+# This is just for shared dependencies. Individual crates manage their own workspaces.
 resolver = "2"
 
 [workspace.package]

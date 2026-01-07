@@ -11,5 +11,5 @@ license = "MIT OR Apache-2.0"
 authors = ["Arc <attobop@gmail.com>"]
 
 [workspace.dependencies]
-rank-sparse = { path = "../../rank-sparse/rank-sparse" }
+rank-sparse = { path = "../rank-sparse/rank-sparse" }
 
