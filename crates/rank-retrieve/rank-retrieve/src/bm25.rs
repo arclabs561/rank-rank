@@ -125,7 +125,9 @@ impl InvertedIndex {
             return 0.0;
         }
         let n = self.num_docs as f32;
-        ((n - df + 0.5) / (df + 0.5)).ln()
+        // Use standard BM25 IDF formula: log((N - df + 0.5) / (df + 0.5))
+        // Add 1.0 to ensure positive IDF (standard BM25 variant)
+        ((n - df + 0.5) / (df + 0.5) + 1.0).ln()
     }
     
     /// Score a document against a query using BM25.
