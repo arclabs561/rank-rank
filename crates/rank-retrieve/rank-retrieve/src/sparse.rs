@@ -117,7 +117,7 @@ mod tests {
         // Query: terms 0, 1 with weights 1.0, 1.0
         let query = SparseVector::new_unchecked(vec![0, 1], vec![1.0, 1.0]);
         
-        let results = retriever.retrieve(&query, 10);
+        let results = retriever.retrieve(&query, 10).unwrap();
         
         // Document 0 should score higher (has term 0 with weight 1.0)
         assert_eq!(results.len(), 2);
