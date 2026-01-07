@@ -20,7 +20,7 @@
 //! - `IDF(q_i)` = inverse document frequency of term q_i
 
 use std::collections::{HashMap, HashSet};
-use crate::error::RetrieveError;
+use crate::RetrieveError;
 
 /// BM25 parameters.
 #[derive(Debug, Clone, Copy)]

@@ -43,9 +43,9 @@ impl HybridRetriever {
         query_sparse: &SparseVector,
         k: usize,
     ) -> (Vec<(u32, f32)>, Vec<(u32, f32)>, Vec<(u32, f32)>) {
-        let bm25_results = self.bm25_index.retrieve(query_terms, k, Bm25Params::default());
-        let dense_results = self.dense_retriever.retrieve(query_embedding, k);
-        let sparse_results = self.sparse_retriever.retrieve(query_sparse, k);
+        let bm25_results = self.bm25_index.retrieve(query_terms, k, Bm25Params::default()).unwrap();
+        let dense_results = self.dense_retriever.retrieve(query_embedding, k).unwrap();
+        let sparse_results = self.sparse_retriever.retrieve(query_sparse, k).unwrap();
         
         (bm25_results, dense_results, sparse_results)
     }

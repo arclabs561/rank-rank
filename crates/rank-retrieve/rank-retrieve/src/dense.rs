@@ -16,6 +16,8 @@
 //! - FAISS (Facebook AI Similarity Search) - highly optimized
 //! - IVF (Inverted File Index) - memory efficient
 
+use crate::RetrieveError;
+
 /// Dense retriever using cosine similarity.
 ///
 /// Simple implementation using brute-force cosine similarity.

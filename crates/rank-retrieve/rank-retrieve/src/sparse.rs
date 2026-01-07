@@ -9,7 +9,7 @@
 //! This enables efficient dot product computation for large vocabularies.
 
 use rank_sparse::{SparseVector, dot_product};
-use crate::error::RetrieveError;
+use crate::RetrieveError;
 
 /// Sparse retriever using sparse vector dot products.
 pub struct SparseRetriever {
