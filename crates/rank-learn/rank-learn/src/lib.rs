@@ -26,7 +26,7 @@
 //! let scores = vec![0.5, 0.8, 0.3];
 //! let relevance = vec![3.0, 1.0, 2.0];
 //!
-//! let lambdas = trainer.compute_gradients(&scores, &relevance, None);
+//! let lambdas = trainer.compute_lambdas(&scores, &relevance);
 //! // Use lambdas as gradients to update your ranking model
 //! ```
 //!

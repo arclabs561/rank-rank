@@ -60,7 +60,7 @@ pub mod sparse;
 
 /// Re-export commonly used types.
 pub mod prelude {
-    pub use crate::bm25::{Bm25Params, InvertedIndex};
+    pub use crate::bm25::{Bm25Params, Bm25Retriever};
     pub use crate::dense::DenseRetriever;
     pub use crate::sparse::SparseRetriever;
 }
@@ -73,11 +73,11 @@ mod tests {
     fn test_bm25_retrieval() {
         use crate::bm25::*;
         
-        let mut index = InvertedIndex::new();
-        index.add_document(0, &["test".to_string(), "document".to_string()]);
+        let mut retriever = Bm25Retriever::new(Bm25Params::default());
+        retriever.add_document(0, &["test".to_string(), "document".to_string()]);
         
         let query = vec!["test".to_string()];
-        let results = index.retrieve(&query, 10, Bm25Params::default());
+        let results = retriever.retrieve(&query, 10);
         
         assert!(!results.is_empty());
         assert_eq!(results[0].0, 0);
