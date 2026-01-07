@@ -1,0 +1,46 @@
+[package]
+name = "rank-retrieve"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+description = "First-stage retrieval for information retrieval pipelines"
+repository = "https://github.com/arclabs561/rank-retrieve"
+documentation = "https://docs.rs/rank-retrieve"
+keywords = ["search", "retrieval", "bm25", "ann", "information-retrieval"]
+categories = ["algorithms", "science"]
+
+[lib]
+name = "rank_retrieve"
+path = "src/lib.rs"
+
+[dependencies]
+# Sparse vector utilities
+rank-sparse = { workspace = true }
+
+# Optional: BM25 indexing
+# tantivy = { version = "0.21", optional = true }
+
+# Optional: Dense ANN
+# hnsw = { version = "0.10", optional = true }
+
+[features]
+default = []
+# bm25 = ["tantivy"]
+# dense = ["hnsw"]
+
+[[example]]
+name = "basic_retrieval"
+path = "examples/basic_retrieval.rs"
+
+[[example]]
+name = "hybrid_retrieval"
+path = "examples/hybrid_retrieval.rs"
+
+[[example]]
+name = "full_pipeline"
+path = "examples/full_pipeline.rs"
+
+[dev-dependencies]
+

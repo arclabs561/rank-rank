@@ -1,0 +1,19 @@
+# DEPRECATED: Use .cursor/rules/*.mdc instead
+
+This file is kept for backward compatibility. The recommended approach is to use `.cursor/rules/*.mdc` files.
+
+## Migration
+
+1. Copy `.cursor/rules/shared-base.mdc` to each rank-* repository
+2. Use `.cursor/rules/*.mdc` format with frontmatter
+3. See CURSOR_CONFIG.md for details
+
+## Legacy Content (for reference)
+
+The content that was here has been moved to `.cursor/rules/shared-base.mdc`.
+
+To use these rules:
+1. Copy `.cursor/rules/shared-base.mdc` to your repository's `.cursor/rules/` directory
+2. Cursor will automatically discover and apply the rules
+
+See CURSOR_CONFIG.md for complete setup instructions.

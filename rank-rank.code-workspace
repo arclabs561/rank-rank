@@ -1,0 +1,19 @@
+{
+	"folders": [
+		{
+			"path": "rank-fusion"
+		},
+		{
+			"path": "rank-refine"
+		},
+		{
+			"path": "rank-relax"
+		},
+		{
+			"path": "rank-eval"
+		},
+		{
+			"path": "rank-rank"
+		}
+	]
+}

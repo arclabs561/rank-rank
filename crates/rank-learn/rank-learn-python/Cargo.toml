@@ -1,0 +1,18 @@
+[package]
+name = "rank-learn-python"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[lib]
+name = "rank_learn"
+crate-type = ["cdylib"]
+
+[dependencies]
+rank-learn = { path = "../rank-learn" }
+pyo3 = { workspace = true }
+
+[dev-dependencies]
+

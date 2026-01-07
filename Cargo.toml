@@ -1,0 +1,37 @@
+[workspace]
+members = [
+    "crates/rank-retrieve/rank-retrieve",
+    "crates/rank-retrieve/rank-retrieve-python",
+    "crates/rank-fusion/rank-fusion",
+    "crates/rank-fusion/rank-fusion-python",
+    "crates/rank-rerank/rank-rerank-core",
+    "crates/rank-rerank/rank-rerank-python",
+    "crates/rank-soft",
+    "crates/rank-soft/rank-soft-python",
+    "crates/rank-learn/rank-learn",
+    "crates/rank-learn/rank-learn-python",
+    "crates/rank-eval/rank-eval",
+    "crates/rank-eval/rank-eval-python",
+    "crates/rank-sparse/rank-sparse",
+    "crates/rank-sparse/rank-sparse-python",
+]
+resolver = "2"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.74"
+license = "MIT OR Apache-2.0"
+authors = ["Arc <attobop@gmail.com>"]
+
+[workspace.dependencies]
+# Shared dependencies across all crates
+serde = { version = "1.0", features = ["derive"] }
+pyo3 = { version = "0.24", features = ["extension-module", "abi3-py37"] }
+criterion = "0.5"
+proptest = "1"
+
+# Cross-crate dependencies (path-based for development)
+rank-sparse = { path = "crates/rank-sparse/rank-sparse" }
+rank-soft = { path = "crates/rank-soft", package = "rank-soft" }
+

@@ -1,0 +1,15 @@
+[workspace]
+members = ["rank-retrieve", "rank-retrieve-python"]
+resolver = "2"
+default-members = ["rank-retrieve"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.74"
+license = "MIT OR Apache-2.0"
+authors = ["Arc <attobop@gmail.com>"]
+
+[workspace.dependencies]
+rank-sparse = { path = "../../rank-sparse/rank-sparse" }
+
