@@ -3,6 +3,7 @@
 use rank_retrieve::bm25::{Bm25Params, InvertedIndex};
 use rank_retrieve::dense::DenseRetriever;
 use rank_retrieve::sparse::SparseRetriever;
+use rank_retrieve::RetrieveError;
 use rank_sparse::SparseVector;
 
 #[test]
@@ -10,15 +11,17 @@ fn bm25_empty_query() {
     let mut index = InvertedIndex::new();
     index.add_document(0, &["test".to_string()]);
     
-    let results = index.retrieve(&[], 10, Bm25Params::default());
-    assert_eq!(results.len(), 0);
+    let result = index.retrieve(&[], 10, Bm25Params::default());
+    assert!(result.is_err());
+    assert!(matches!(result.unwrap_err(), rank_retrieve::RetrieveError::EmptyQuery));
 }
 
 #[test]
 fn bm25_empty_index() {
     let index = InvertedIndex::new();
-    let results = index.retrieve(&["test".to_string()], 10, Bm25Params::default());
-    assert_eq!(results.len(), 0);
+    let result = index.retrieve(&["test".to_string()], 10, Bm25Params::default());
+    assert!(result.is_err());
+    assert!(matches!(result.unwrap_err(), rank_retrieve::RetrieveError::EmptyIndex));
 }
 
 #[test]
@@ -57,15 +60,17 @@ fn dense_empty_query() {
     retriever.add_document(0, vec![1.0, 0.0]);
     
     let empty: Vec<f32> = vec![];
-    let results = retriever.retrieve(&empty, 10);
-    assert_eq!(results.len(), 0);
+    let result = retriever.retrieve(&empty, 10);
+    assert!(result.is_err());
+    assert!(matches!(result.unwrap_err(), rank_retrieve::RetrieveError::EmptyQuery));
 }
 
 #[test]
 fn dense_empty_index() {
     let retriever = DenseRetriever::new();
-    let results = retriever.retrieve(&[1.0, 0.0], 10);
-    assert_eq!(results.len(), 0);
+    let result = retriever.retrieve(&[1.0, 0.0], 10);
+    assert!(result.is_err());
+    assert!(matches!(result.unwrap_err(), rank_retrieve::RetrieveError::EmptyIndex));
 }
 
 #[test]
@@ -82,8 +87,9 @@ fn dense_mismatched_dimensions() {
     let mut retriever = DenseRetriever::new();
     retriever.add_document(0, vec![1.0, 0.0]);
     
-    let results = retriever.retrieve(&[1.0], 10);
-    assert_eq!(results.len(), 0);
+    let result = retriever.retrieve(&[1.0], 10);
+    assert!(result.is_err());
+    assert!(matches!(result.unwrap_err(), rank_retrieve::RetrieveError::DimensionMismatch { .. }));
 }
 
 #[test]
@@ -103,17 +109,18 @@ fn sparse_empty_query() {
     retriever.add_document(0, doc_vector);
     
     let query_vector = SparseVector::new(vec![], vec![]).unwrap();
-    let results = retriever.retrieve(&query_vector, 10);
-    assert_eq!(results.len(), 1);
-    assert_eq!(results[0].1, 0.0);
+    let result = retriever.retrieve(&query_vector, 10);
+    assert!(result.is_err());
+    assert!(matches!(result.unwrap_err(), rank_retrieve::RetrieveError::EmptyQuery));
 }
 
 #[test]
 fn sparse_empty_index() {
     let retriever = SparseRetriever::new();
     let query_vector = SparseVector::new(vec![0, 1], vec![1.0, 0.5]).unwrap();
-    let results = retriever.retrieve(&query_vector, 10);
-    assert_eq!(results.len(), 0);
+    let result = retriever.retrieve(&query_vector, 10);
+    assert!(result.is_err());
+    assert!(matches!(result.unwrap_err(), rank_retrieve::RetrieveError::EmptyIndex));
 }
 
 #[test]
@@ -134,7 +141,7 @@ fn sparse_no_overlap() {
     retriever.add_document(0, doc_vector);
     
     let query_vector = SparseVector::new(vec![2, 3], vec![1.0, 0.5]).unwrap();
-    let results = retriever.retrieve(&query_vector, 10);
+    let results = retriever.retrieve(&query_vector, 10).unwrap();
     assert_eq!(results.len(), 1);
     assert_eq!(results[0].1, 0.0);
 }

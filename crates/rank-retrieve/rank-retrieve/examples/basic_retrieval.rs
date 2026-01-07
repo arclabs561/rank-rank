@@ -19,7 +19,7 @@ fn main() {
     
     // Query
     let query = vec!["quick".to_string(), "fox".to_string()];
-    let results = index.retrieve(&query, 10, Bm25Params::default());
+    let results = index.retrieve(&query, 10, Bm25Params::default().unwrap().unwrap()).unwrap();
     
     println!("Query: {:?}", query);
     println!("Results:");
@@ -38,7 +38,7 @@ fn main() {
     
     // Query embedding
     let query_embedding = vec![1.0, 0.0, 0.0];
-    let results = dense_retriever.retrieve(&query_embedding, 10);
+    let results = dense_retriever.retrieve(&query_embedding, 10).unwrap();
     
     println!("Query embedding: {:?}", query_embedding);
     println!("Results:");
@@ -60,7 +60,7 @@ fn main() {
     
     // Query: terms 0, 1
     let query_vector = SparseVector::new_unchecked(vec![0, 1], vec![1.0, 1.0]);
-    let results = sparse_retriever.retrieve(&query_vector, 10);
+    let results = sparse_retriever.retrieve(&query_vector, 10).unwrap();
     
     println!("Query vector: indices {:?}, values {:?}", query_vector.indices, query_vector.values);
     println!("Results:");

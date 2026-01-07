@@ -20,6 +20,7 @@
 //! - `IDF(q_i)` = inverse document frequency of term q_i
 
 use std::collections::{HashMap, HashSet};
+use crate::error::RetrieveError;
 
 /// BM25 parameters.
 #[derive(Debug, Clone, Copy)]
@@ -182,7 +183,20 @@ impl InvertedIndex {
     /// # Returns
     ///
     /// Vector of (document_id, score) pairs, sorted by score descending
-    pub fn retrieve(&self, query_terms: &[String], k: usize, params: Bm25Params) -> Vec<(u32, f32)> {
+    ///
+    /// # Errors
+    ///
+    /// Returns `RetrieveError::EmptyQuery` if query is empty.
+    /// Returns `RetrieveError::EmptyIndex` if index has no documents.
+    pub fn retrieve(&self, query_terms: &[String], k: usize, params: Bm25Params) -> Result<Vec<(u32, f32)>, RetrieveError> {
+        if query_terms.is_empty() {
+            return Err(RetrieveError::EmptyQuery);
+        }
+        
+        if self.num_docs == 0 {
+            return Err(RetrieveError::EmptyIndex);
+        }
+        
         // Get all candidate documents (documents containing at least one query term)
         let mut candidates: HashSet<u32> = HashSet::new();
         for term in query_terms {
@@ -204,7 +218,7 @@ impl InvertedIndex {
         scored.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
         
         // Return top-k
-        scored.into_iter().take(k).collect()
+        Ok(scored.into_iter().take(k).collect())
     }
 }
 
@@ -229,7 +243,7 @@ mod tests {
         
         // Query
         let query = vec!["quick".to_string(), "fox".to_string()];
-        let results = index.retrieve(&query, 10, Bm25Params::default());
+        let results = index.retrieve(&query, 10, Bm25Params::default()).unwrap();
         
         // Document 0 and 2 should have highest scores (both contain "quick" and "fox")
         assert!(results.len() >= 2);

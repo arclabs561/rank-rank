@@ -81,27 +81,40 @@ impl DenseRetriever {
     /// # Returns
     ///
     /// Vector of (document_id, score) pairs, sorted by score descending
-    pub fn retrieve(&self, query_embedding: &[f32], k: usize) -> Vec<(u32, f32)> {
+    ///
+    /// # Errors
+    ///
+    /// Returns `RetrieveError::EmptyQuery` if query is empty.
+    /// Returns `RetrieveError::EmptyIndex` if index has no documents.
+    /// Returns `RetrieveError::DimensionMismatch` if query dimension doesn't match document dimensions.
+    pub fn retrieve(&self, query_embedding: &[f32], k: usize) -> Result<Vec<(u32, f32)>, RetrieveError> {
         if query_embedding.is_empty() {
-            return Vec::new();
+            return Err(RetrieveError::EmptyQuery);
         }
         
-        let mut scored: Vec<(u32, f32)> = self.documents
-            .iter()
-            .filter_map(|(doc_id, doc_embedding)| {
-                if doc_embedding.len() != query_embedding.len() {
-                    return None;
-                }
-                let score = Self::cosine_similarity(doc_embedding, query_embedding);
-                Some((*doc_id, score))
-            })
-            .collect();
+        if self.documents.is_empty() {
+            return Err(RetrieveError::EmptyIndex);
+        }
+        
+        let query_dim = query_embedding.len();
+        let mut scored: Vec<(u32, f32)> = Vec::new();
+        
+        for (doc_id, doc_embedding) in &self.documents {
+            if doc_embedding.len() != query_dim {
+                return Err(RetrieveError::DimensionMismatch {
+                    query_dim,
+                    doc_dim: doc_embedding.len(),
+                });
+            }
+            let score = Self::cosine_similarity(doc_embedding, query_embedding);
+            scored.push((*doc_id, score));
+        }
         
         // Sort by score descending
         scored.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
         
         // Return top-k
-        scored.into_iter().take(k).collect()
+        Ok(scored.into_iter().take(k).collect())
     }
 }
 

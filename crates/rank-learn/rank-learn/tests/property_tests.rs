@@ -8,7 +8,7 @@ proptest! {
     fn ndcg_is_bounded(
         relevance in prop::collection::vec(0.0f32..10.0, 1..100),
     ) {
-        let ndcg = ndcg_at_k(&relevance, None);
+        let ndcg = ndcg_at_k(&relevance, None).unwrap();
         prop_assert!(
             ndcg >= 0.0 && ndcg <= 1.0,
             "NDCG must be in [0, 1]"
@@ -20,7 +20,7 @@ proptest! {
         mut relevance in prop::collection::vec(0.0f32..10.0, 1..100),
     ) {
         relevance.sort_by(|a, b| b.partial_cmp(a).unwrap());
-        let ndcg = ndcg_at_k(&relevance, None);
+        let ndcg = ndcg_at_k(&relevance, None).unwrap();
         prop_assert!(
             (ndcg - 1.0).abs() < 0.01,
             "Perfect ranking should have NDCG = 1.0"
@@ -32,11 +32,13 @@ proptest! {
         relevance in prop::collection::vec(0.0f32..10.0, 1..100),
         k in 1usize..100,
     ) {
-        let ndcg = ndcg_at_k(&relevance, Some(k));
-        prop_assert!(
-            ndcg >= 0.0 && ndcg <= 1.0,
-            "NDCG@k must be in [0, 1]"
-        );
+        if k <= relevance.len() {
+            let ndcg = ndcg_at_k(&relevance, Some(k)).unwrap();
+            prop_assert!(
+                ndcg >= 0.0 && ndcg <= 1.0,
+                "NDCG@k must be in [0, 1]"
+            );
+        }
     }
 
     #[test]
@@ -44,9 +46,9 @@ proptest! {
         scores in prop::collection::vec(-10.0f32..10.0, 1..100),
         relevance in prop::collection::vec(0.0f32..10.0, 1..100),
     ) {
-        if scores.len() == relevance.len() {
+        if scores.len() == relevance.len() && !scores.is_empty() {
             let trainer = LambdaRankTrainer::default();
-            let lambdas = trainer.compute_gradients(&scores, &relevance, None);
+            let lambdas = trainer.compute_gradients(&scores, &relevance, None).unwrap();
             
             prop_assert_eq!(
                 lambdas.len(),
@@ -61,9 +63,9 @@ proptest! {
         scores in prop::collection::vec(-10.0f32..10.0, 1..50),
         relevance in prop::collection::vec(0.0f32..10.0, 1..50),
     ) {
-        if scores.len() == relevance.len() {
+        if scores.len() == relevance.len() && !scores.is_empty() {
             let trainer = LambdaRankTrainer::default();
-            let lambdas = trainer.compute_gradients(&scores, &relevance, None);
+            let lambdas = trainer.compute_gradients(&scores, &relevance, None).unwrap();
             
             for lambda in lambdas {
                 prop_assert!(

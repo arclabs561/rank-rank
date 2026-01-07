@@ -23,7 +23,7 @@ fn main() {
     println!("Ground truth relevance: {:?}\n", relevance);
     
     // Compute LambdaRank gradients
-    let lambdas = trainer.compute_gradients(&scores, &relevance, None);
+    let lambdas = trainer.compute_gradients(&scores, &relevance, None).unwrap();
     
     println!("LambdaRank gradients (lambdas):");
     for (i, lambda) in lambdas.iter().enumerate() {
@@ -36,7 +36,7 @@ fn main() {
     println!("- Magnitude: strength of the gradient signal");
     
     // Compute NDCG to see current quality
-    let ndcg = ndcg_at_k(&relevance, None);
+    let ndcg = ndcg_at_k(&relevance, None).unwrap();
     println!("\nCurrent NDCG: {:.4}", ndcg);
     
     // In a real training loop, you would:
@@ -49,7 +49,7 @@ fn main() {
     println!("for epoch in 0..num_epochs {{");
     println!("    for query in queries {{");
     println!("        scores = model.predict(query, documents);");
-    println!("        lambdas = trainer.compute_gradients(&scores, &relevance, None);");
+    println!("        lambdas = trainer.compute_gradients(&scores, &relevance, None).unwrap();");
     println!("        model.update_weights(&lambdas);  // Gradient descent");
     println!("    }}");
     println!("}}");

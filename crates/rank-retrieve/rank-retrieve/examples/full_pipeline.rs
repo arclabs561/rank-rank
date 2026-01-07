@@ -18,7 +18,7 @@ fn main() {
     bm25_index.add_document(2, &["quick".to_string(), "brown".to_string(), "fox".to_string(), "jumps".to_string()]);
     
     let query_terms = vec!["quick".to_string(), "fox".to_string()];
-    let bm25_results = bm25_index.retrieve(&query_terms, 1000, Bm25Params::default());
+    let bm25_results = bm25_index.retrieve(&query_terms, 1000, Bm25Params::default().unwrap().unwrap());
     
     println!("BM25 retrieved {} candidates", bm25_results.len());
     println!("Top 5: {:?}\n", &bm25_results[..5.min(bm25_results.len())]);
@@ -30,7 +30,7 @@ fn main() {
     dense_retriever.add_document(2, vec![0.0, 1.0, 0.0]);
     
     let query_embedding = vec![1.0, 0.0, 0.0];
-    let dense_results = dense_retriever.retrieve(&query_embedding, 1000);
+    let dense_results = dense_retriever.retrieve(&query_embedding, 1000).unwrap();
     
     println!("Dense retrieved {} candidates", dense_results.len());
     println!("Top 5: {:?}\n", &dense_results[..5.min(dense_results.len())]);

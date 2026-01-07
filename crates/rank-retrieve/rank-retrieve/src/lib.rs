@@ -58,11 +58,17 @@ pub mod dense;
 /// Uses rank-sparse for sparse vector operations.
 pub mod sparse;
 
+/// Error types for retrieval operations.
+pub mod error;
+
+pub use error::RetrieveError;
+
 /// Re-export commonly used types.
 pub mod prelude {
     pub use crate::bm25::{Bm25Params, InvertedIndex};
     pub use crate::dense::DenseRetriever;
     pub use crate::sparse::SparseRetriever;
+    pub use crate::RetrieveError;
 }
 
 #[cfg(test)]
@@ -77,7 +83,7 @@ mod tests {
         index.add_document(0, &["test".to_string(), "document".to_string()]);
         
         let query = vec!["test".to_string()];
-        let results = index.retrieve(&query, 10, Bm25Params::default());
+        let results = index.retrieve(&query, 10, Bm25Params::default()).unwrap();
         
         assert!(!results.is_empty());
         assert_eq!(results[0].0, 0);

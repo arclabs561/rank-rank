@@ -9,6 +9,7 @@
 //! This enables efficient dot product computation for large vocabularies.
 
 use rank_sparse::{SparseVector, dot_product};
+use crate::error::RetrieveError;
 
 /// Sparse retriever using sparse vector dot products.
 pub struct SparseRetriever {
@@ -61,7 +62,20 @@ impl SparseRetriever {
     /// # Returns
     ///
     /// Vector of (document_id, score) pairs, sorted by score descending
-    pub fn retrieve(&self, query_vector: &SparseVector, k: usize) -> Vec<(u32, f32)> {
+    ///
+    /// # Errors
+    ///
+    /// Returns `RetrieveError::EmptyQuery` if query vector is empty.
+    /// Returns `RetrieveError::EmptyIndex` if index has no documents.
+    pub fn retrieve(&self, query_vector: &SparseVector, k: usize) -> Result<Vec<(u32, f32)>, RetrieveError> {
+        if query_vector.indices.is_empty() {
+            return Err(RetrieveError::EmptyQuery);
+        }
+        
+        if self.documents.is_empty() {
+            return Err(RetrieveError::EmptyIndex);
+        }
+        
         let mut scored: Vec<(u32, f32)> = self.documents
             .iter()
             .map(|(doc_id, doc_vector)| {
@@ -74,7 +88,7 @@ impl SparseRetriever {
         scored.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
         
         // Return top-k
-        scored.into_iter().take(k).collect()
+        Ok(scored.into_iter().take(k).collect())
     }
 }
 

@@ -44,35 +44,21 @@
 /// LambdaMART combines LambdaRank with gradient boosting (MART).
 pub mod lambdarank;
 
-/// XGBoost integration for ranking.
-///
-/// Provides Rust bindings and utilities for using XGBoost with ranking objectives.
-pub mod xgboost {
-    // TODO: Implement XGBoost integration
-    // - XGBoost Rust bindings
-    // - Ranking objective support
-    // - Training utilities
-}
-
-/// LightGBM integration for ranking.
-///
-/// Provides Rust bindings and utilities for using LightGBM with ranking objectives.
-pub mod lightgbm {
-    // TODO: Implement LightGBM integration
-    // - LightGBM Rust bindings
-    // - Ranking objective support
-    // - Training utilities
-}
-
 /// Neural Learning to Rank models.
 ///
 /// Neural ranking models that use rank-soft for differentiable operations.
 pub mod neural;
 
+/// Error types for learning to rank operations.
+pub mod error;
+
+pub use error::LearnError;
+
 /// Re-export commonly used types.
 pub mod prelude {
     pub use crate::lambdarank::{LambdaRankParams, LambdaRankTrainer, ndcg_at_k};
     pub use crate::neural::{NeuralLTRConfig, NeuralLTRModel};
+    pub use crate::LearnError;
 }
 
 #[cfg(test)]

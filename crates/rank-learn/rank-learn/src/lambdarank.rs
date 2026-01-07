@@ -47,13 +47,30 @@ impl Default for LambdaRankParams {
 /// # Returns
 ///
 /// NDCG value
-pub fn ndcg_at_k(relevance: &[f32], k: Option<usize>) -> f32 {
+///
+/// # Errors
+///
+/// Returns `LearnError::EmptyInput` if relevance is empty.
+/// Returns `LearnError::InvalidNDCG` if k > relevance length.
+pub fn ndcg_at_k(relevance: &[f32], k: Option<usize>) -> Result<f32, LearnError> {
+    if relevance.is_empty() {
+        return Err(LearnError::EmptyInput);
+    }
+    
     let k = k.unwrap_or(relevance.len());
-    let k = k.min(relevance.len());
     
     if k == 0 {
-        return 0.0;
+        return Ok(0.0);
     }
+    
+    if k > relevance.len() {
+        return Err(LearnError::InvalidNDCG {
+            k,
+            length: relevance.len(),
+        });
+    }
+    
+    let k = k.min(relevance.len());
     
     // Compute DCG
     let mut dcg = 0.0;
@@ -75,9 +92,9 @@ pub fn ndcg_at_k(relevance: &[f32], k: Option<usize>) -> f32 {
     }
     
     if idcg == 0.0 {
-        0.0
+        Ok(0.0)
     } else {
-        dcg / idcg
+        Ok(dcg / idcg)
     }
 }
 
@@ -101,14 +118,14 @@ fn delta_ndcg(relevance: &[f32], pos_i: usize, pos_j: usize, k: Option<usize>) -
     let k = k.unwrap_or(relevance.len());
     
     // Original NDCG
-    let original_ndcg = ndcg_at_k(relevance, Some(k));
+    let original_ndcg = ndcg_at_k(relevance, Some(k)).unwrap_or(0.0);
     
     // Swapped relevance
     let mut swapped = relevance.to_vec();
     swapped.swap(pos_i, pos_j);
     
     // NDCG after swap
-    let swapped_ndcg = ndcg_at_k(&swapped, Some(k));
+    let swapped_ndcg = ndcg_at_k(&swapped, Some(k)).unwrap_or(0.0);
     
     swapped_ndcg - original_ndcg
 }
@@ -200,13 +217,29 @@ impl LambdaRankTrainer {
     /// # Returns
     ///
     /// Lambda values (gradients) for each document
+    ///
+    /// # Errors
+    ///
+    /// Returns `LearnError::EmptyInput` if scores or relevance is empty.
+    /// Returns `LearnError::LengthMismatch` if scores and relevance have different lengths.
     pub fn compute_gradients(
         &self,
         scores: &[f32],
         relevance: &[f32],
         k: Option<usize>,
-    ) -> Vec<f32> {
-        compute_lambdas(scores, relevance, self.params, k)
+    ) -> Result<Vec<f32>, LearnError> {
+        if scores.is_empty() || relevance.is_empty() {
+            return Err(LearnError::EmptyInput);
+        }
+        
+        if scores.len() != relevance.len() {
+            return Err(LearnError::LengthMismatch {
+                scores_len: scores.len(),
+                relevance_len: relevance.len(),
+            });
+        }
+        
+        Ok(compute_lambdas(scores, relevance, self.params, k))
     }
 }
 
@@ -224,7 +257,7 @@ mod tests {
     fn test_ndcg() {
         // Perfect ranking: relevance = [3.0, 2.0, 1.0]
         let relevance = vec![3.0, 2.0, 1.0];
-        let ndcg = ndcg_at_k(&relevance, None);
+        let ndcg = ndcg_at_k(&relevance, None).unwrap();
         assert!((ndcg - 1.0).abs() < 0.01); // Should be 1.0 for perfect ranking
     }
     
@@ -238,7 +271,7 @@ mod tests {
         let relevance = vec![3.0, 1.0, 2.0]; // Ground truth (doc 0 should rank highest)
         
         let trainer = LambdaRankTrainer::default();
-        let lambdas = trainer.compute_gradients(&scores, &relevance, None);
+        let lambdas = trainer.compute_gradients(&scores, &relevance, None).unwrap();
         
         // Document 0 should have positive lambda (should rank higher)
         // Document 1 should have negative lambda (should rank lower)
