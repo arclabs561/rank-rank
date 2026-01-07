@@ -21,6 +21,7 @@
 //!
 //! The lambda for document i is the sum of all lambda_ij over pairs where i is involved.
 
+use crate::LearnError;
 
 /// LambdaRank parameters.
 #[derive(Debug, Clone, Copy)]

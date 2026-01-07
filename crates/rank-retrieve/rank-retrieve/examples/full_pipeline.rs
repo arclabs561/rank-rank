@@ -18,7 +18,7 @@ fn main() {
     bm25_index.add_document(2, &["quick".to_string(), "brown".to_string(), "fox".to_string(), "jumps".to_string()]);
     
     let query_terms = vec!["quick".to_string(), "fox".to_string()];
-    let bm25_results = bm25_index.retrieve(&query_terms, 1000, Bm25Params::default().unwrap().unwrap());
+    let bm25_results = bm25_index.retrieve(&query_terms, 1000, Bm25Params::default()).unwrap();
     
     println!("BM25 retrieved {} candidates", bm25_results.len());
     println!("Top 5: {:?}\n", &bm25_results[..5.min(bm25_results.len())]);
