@@ -1,0 +1,29 @@
+# Git attributes for consistent line endings and file handling
+
+# Auto detect text files and perform LF normalization
+* text=auto
+
+# Source files
+*.rs text eol=lf
+*.py text eol=lf
+*.toml text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+*.sh text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+
+# Binary files
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.pdf binary
+*.so binary
+*.dylib binary
+*.dll binary
+
+# Generated files (should be in .gitignore)
+*.lock text eol=lf
+Cargo.lock text eol=lf
+
