@@ -143,7 +143,7 @@ mod tests {
         // Query: [1.0, 0.0]
         let query = vec![1.0, 0.0];
         
-        let results = retriever.retrieve(&query, 10);
+        let results = retriever.retrieve(&query, 10).unwrap();
         
         // Document 0 should score 1.0 (exact match)
         // Document 1 should score 0.707 (cosine similarity)
