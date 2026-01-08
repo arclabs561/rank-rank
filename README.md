@@ -6,6 +6,8 @@ Ranking and retrieval crates in Rust.
 
 Rust ecosystem lacks unified APIs for IR pipelines. Python frameworks provide unified retrieval, but Rust developers must manually compose multiple crates. These crates fill that gap: unified APIs, seamless integration, minimal dependencies.
 
+**Pipeline motivation**: IR systems use multi-stage pipelines for efficiency. First-stage retrieval (BM25, dense ANN) narrows 10M documents to 1000 candidates quickly. Rank fusion combines multiple retrieval methods (hybrid search). Reranking (MaxSim, cross-encoder) precisely scores 1000 candidates down to 100 results. Evaluation metrics measure quality. This pipeline balances speed (retrieval) and precision (reranking).
+
 **Pipeline**: `rank-retrieve` → `rank-fusion` → `rank-rerank` → `rank-eval`  
 **Training**: `rank-soft` (differentiable ranking), `rank-learn` (LTR algorithms)
 
