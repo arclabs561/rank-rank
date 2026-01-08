@@ -13,9 +13,5 @@
 ## Structure
 
 - `theory/` - Mathematical theory documentation
-- `typst/` - Typst documentation guide
-  - `README.md` - Typst documentation generation overview
-  - `GUIDE.md` - Guide for creating and maintaining Typst docs
-  - `DEBUGGING.md` - Common Typst issues and solutions
 
 
