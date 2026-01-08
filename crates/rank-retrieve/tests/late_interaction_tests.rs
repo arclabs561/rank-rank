@@ -11,14 +11,17 @@ mod test_helpers;
 #[cfg(test)]
 mod tests {
     use super::test_helpers::{mock_dense_embed, mock_token_embed};
-    #[cfg(feature = "bm25")]
-    use rank_retrieve::{retrieve_bm25, bm25::{Bm25Params, InvertedIndex}};
-    #[cfg(feature = "dense")]
-    use rank_retrieve::retrieve_dense;
+    use rank_eval::binary::{ndcg_at_k, precision_at_k};
+    use rank_fusion::rrf;
     use rank_rerank::colbert;
     use rank_rerank::simd;
-    use rank_fusion::rrf;
-    use rank_eval::binary::{ndcg_at_k, precision_at_k};
+    #[cfg(feature = "dense")]
+    use rank_retrieve::retrieve_dense;
+    #[cfg(feature = "bm25")]
+    use rank_retrieve::{
+        bm25::{Bm25Params, InvertedIndex},
+        retrieve_bm25,
+    };
     use std::collections::HashSet;
 
     /// Test the research-backed pipeline: BM25 → MaxSim reranking
@@ -48,7 +51,8 @@ mod tests {
         let query_text = "machine learning";
         let query_tokens = mock_token_embed(query_text, 128);
 
-        let doc_tokens: Vec<(u32, Vec<Vec<f32>>)> = candidates.iter()
+        let doc_tokens: Vec<(u32, Vec<Vec<f32>>)> = candidates
+            .iter()
             .map(|(id, _)| {
                 let doc_text = documents.iter().find(|(d_id, _)| d_id == id).unwrap().1;
                 (*id, mock_token_embed(doc_text, 128))
@@ -62,11 +66,17 @@ mod tests {
 
         // Verify sorting (descending by score)
         for i in 1..reranked.len() {
-            assert!(reranked[i-1].1 >= reranked[i].1, "Results should be sorted descending");
+            assert!(
+                reranked[i - 1].1 >= reranked[i].1,
+                "Results should be sorted descending"
+            );
         }
 
         // Verify top result is relevant
-        assert_eq!(reranked[0].0, 0, "Document 0 should rank highest for 'machine learning'");
+        assert_eq!(
+            reranked[0].0, 0,
+            "Document 0 should rank highest for 'machine learning'"
+        );
     }
 
     /// Test token pooling optimization (research: 50% reduction, <1% quality loss)
@@ -82,53 +92,84 @@ mod tests {
         let reduction = 1.0 - (pooled_count as f32 / original_count as f32);
 
         // Verify reduction is approximately 50%
-        assert!(reduction >= 0.4 && reduction <= 0.6, 
-                "Pool factor 2 should reduce by ~50%, got {:.1}%", reduction * 100.0);
-        assert!(pooled_count <= original_count, "Pooled should not exceed original");
+        assert!(
+            reduction >= 0.4 && reduction <= 0.6,
+            "Pool factor 2 should reduce by ~50%, got {:.1}%",
+            reduction * 100.0
+        );
+        assert!(
+            pooled_count <= original_count,
+            "Pooled should not exceed original"
+        );
 
         // Verify dimensions preserved
-        assert_eq!(pooled[0].len(), doc_tokens[0].len(), "Dimensions should be preserved");
+        assert_eq!(
+            pooled[0].len(),
+            doc_tokens[0].len(),
+            "Dimensions should be preserved"
+        );
 
         // Test with query: pooled documents should still work
         let query_tokens = mock_token_embed("machine learning", 128);
         let score_original = simd::maxsim(
-            &query_tokens.iter().map(|v| v.as_slice()).collect::<Vec<_>>(),
+            &query_tokens
+                .iter()
+                .map(|v| v.as_slice())
+                .collect::<Vec<_>>(),
             &doc_tokens.iter().map(|v| v.as_slice()).collect::<Vec<_>>(),
         );
         let score_pooled = simd::maxsim(
-            &query_tokens.iter().map(|v| v.as_slice()).collect::<Vec<_>>(),
+            &query_tokens
+                .iter()
+                .map(|v| v.as_slice())
+                .collect::<Vec<_>>(),
             &pooled.iter().map(|v| v.as_slice()).collect::<Vec<_>>(),
         );
 
         // Quality should be similar (research: <1% loss for factor 2)
         // Note: With mock embeddings, we relax to 90% to account for simplified data
         let quality_retention = score_pooled / score_original;
-        assert!(quality_retention >= 0.90, 
-                "Pool factor 2 should retain >90% quality (relaxed for mock data), got {:.1}%", quality_retention * 100.0);
+        assert!(
+            quality_retention >= 0.90,
+            "Pool factor 2 should retain >90% quality (relaxed for mock data), got {:.1}%",
+            quality_retention * 100.0
+        );
     }
 
     /// Test that token pooling works with different factors
     #[test]
     fn test_token_pooling_factors() {
-        let doc_tokens = mock_token_embed("machine learning algorithms neural networks deep artificial intelligence", 128);
+        let doc_tokens = mock_token_embed(
+            "machine learning algorithms neural networks deep artificial intelligence",
+            128,
+        );
         let original_count = doc_tokens.len();
 
         // Factor 2
         let pooled_2 = colbert::pool_tokens(&doc_tokens, 2).unwrap();
         let reduction_2 = 1.0 - (pooled_2.len() as f32 / original_count as f32);
-        assert!(reduction_2 >= 0.4 && reduction_2 <= 0.6, "Factor 2: ~50% reduction");
+        assert!(
+            reduction_2 >= 0.4 && reduction_2 <= 0.6,
+            "Factor 2: ~50% reduction"
+        );
 
         // Factor 3
         let pooled_3 = colbert::pool_tokens(&doc_tokens, 3).unwrap();
         let reduction_3 = 1.0 - (pooled_3.len() as f32 / original_count as f32);
         // Relaxed bounds for mock embeddings (actual reduction depends on clustering)
-        assert!(reduction_3 >= 0.5 && reduction_3 <= 0.75, 
-                "Factor 3: should reduce significantly, got {:.1}%", reduction_3 * 100.0);
+        assert!(
+            reduction_3 >= 0.5 && reduction_3 <= 0.75,
+            "Factor 3: should reduce significantly, got {:.1}%",
+            reduction_3 * 100.0
+        );
 
         // Factor 4
         let pooled_4 = colbert::pool_tokens(&doc_tokens, 4).unwrap();
         let reduction_4 = 1.0 - (pooled_4.len() as f32 / original_count as f32);
-        assert!(reduction_4 >= 0.7 && reduction_4 <= 0.8, "Factor 4: ~75% reduction");
+        assert!(
+            reduction_4 >= 0.7 && reduction_4 <= 0.8,
+            "Factor 4: ~75% reduction"
+        );
 
         // Verify more aggressive pooling reduces more
         assert!(pooled_4.len() <= pooled_3.len());
@@ -143,20 +184,28 @@ mod tests {
 
         // Full resolution query
         let score_full = simd::maxsim(
-            &query_tokens.iter().map(|v| v.as_slice()).collect::<Vec<_>>(),
+            &query_tokens
+                .iter()
+                .map(|v| v.as_slice())
+                .collect::<Vec<_>>(),
             &doc_tokens.iter().map(|v| v.as_slice()).collect::<Vec<_>>(),
         );
 
         // Pooled query (not recommended, but test the difference)
         let query_pooled = colbert::pool_tokens(&query_tokens, 2).unwrap();
         let score_pooled_query = simd::maxsim(
-            &query_pooled.iter().map(|v| v.as_slice()).collect::<Vec<_>>(),
+            &query_pooled
+                .iter()
+                .map(|v| v.as_slice())
+                .collect::<Vec<_>>(),
             &doc_tokens.iter().map(|v| v.as_slice()).collect::<Vec<_>>(),
         );
 
         // Full resolution should be better (research finding)
-        assert!(score_full >= score_pooled_query, 
-                "Full resolution queries should perform better");
+        assert!(
+            score_full >= score_pooled_query,
+            "Full resolution queries should perform better"
+        );
     }
 
     /// Test hybrid retrieval: BM25 + Dense → Fusion → MaxSim reranking
@@ -185,15 +234,18 @@ mod tests {
         // Step 1: Retrieve with both methods
         let query_terms = vec!["learning".to_string()];
         let query_emb = mock_dense_embed("learning", 128);
-        
-        let bm25_results = retrieve_bm25(&bm25_index, &query_terms, 10, Bm25Params::default()).unwrap();
+
+        let bm25_results =
+            retrieve_bm25(&bm25_index, &query_terms, 10, Bm25Params::default()).unwrap();
         let dense_results = retrieve_dense(&dense_retriever, &query_emb, 10).unwrap();
 
         // Step 2: Fuse results
-        let bm25_string: Vec<(String, f32)> = bm25_results.iter()
+        let bm25_string: Vec<(String, f32)> = bm25_results
+            .iter()
             .map(|(id, score)| (id.to_string(), *score))
             .collect();
-        let dense_string: Vec<(String, f32)> = dense_results.iter()
+        let dense_string: Vec<(String, f32)> = dense_results
+            .iter()
             .map(|(id, score)| (id.to_string(), *score))
             .collect();
 
@@ -202,10 +254,15 @@ mod tests {
 
         // Step 3: Rerank with MaxSim
         let query_tokens = mock_token_embed("learning", 128);
-        let doc_tokens: Vec<(String, Vec<Vec<f32>>)> = fused.iter()
+        let doc_tokens: Vec<(String, Vec<Vec<f32>>)> = fused
+            .iter()
             .map(|(id, _)| {
                 let id_u32: u32 = id.parse().unwrap();
-                let doc_text = documents.iter().find(|(d_id, _)| *d_id == id_u32).unwrap().1;
+                let doc_text = documents
+                    .iter()
+                    .find(|(d_id, _)| *d_id == id_u32)
+                    .unwrap()
+                    .1;
                 (id.clone(), mock_token_embed(doc_text, 128))
             })
             .collect();
@@ -235,7 +292,8 @@ mod tests {
         let candidates = retrieve_bm25(&index, &query_terms, 10, Bm25Params::default()).unwrap();
 
         let query_tokens = mock_token_embed("machine learning", 128);
-        let doc_tokens: Vec<(u32, Vec<Vec<f32>>)> = candidates.iter()
+        let doc_tokens: Vec<(u32, Vec<Vec<f32>>)> = candidates
+            .iter()
             .map(|(id, _)| {
                 let doc_text = documents.iter().find(|(d_id, _)| d_id == id).unwrap().1;
                 (*id, mock_token_embed(doc_text, 128))
@@ -252,21 +310,25 @@ mod tests {
 
         assert!(precision >= 0.0 && precision <= 1.0);
         assert!(ndcg >= 0.0 && ndcg <= 1.0);
-        assert!(precision > 0.0, "Should retrieve at least one relevant document");
+        assert!(
+            precision > 0.0,
+            "Should retrieve at least one relevant document"
+        );
     }
 
     /// Test that token pooling preserves ranking quality
     #[test]
     fn test_pooling_preserves_ranking_quality() {
         let query_tokens = mock_token_embed("machine learning", 128);
-        
+
         let docs = vec![
             (0, "machine learning algorithms"),
             (1, "deep learning neural networks"),
             (2, "python programming"),
         ];
 
-        let doc_tokens_original: Vec<(u32, Vec<Vec<f32>>)> = docs.iter()
+        let doc_tokens_original: Vec<(u32, Vec<Vec<f32>>)> = docs
+            .iter()
             .map(|(id, text)| (*id, mock_token_embed(text, 128)))
             .collect();
 
@@ -274,7 +336,8 @@ mod tests {
         let ranked_original = colbert::rank(&query_tokens, &doc_tokens_original);
 
         // Pool documents (factor 2)
-        let doc_tokens_pooled: Vec<(u32, Vec<Vec<f32>>)> = doc_tokens_original.iter()
+        let doc_tokens_pooled: Vec<(u32, Vec<Vec<f32>>)> = doc_tokens_original
+            .iter()
             .map(|(id, tokens)| (*id, colbert::pool_tokens(tokens, 2).unwrap()))
             .collect();
 
@@ -285,19 +348,27 @@ mod tests {
         // With mock embeddings, we check that top result is in top-2 to account for ties
         let top_original = ranked_original[0].0;
         let top_pooled_ids: Vec<u32> = ranked_pooled.iter().take(2).map(|(id, _)| *id).collect();
-        assert!(top_pooled_ids.contains(&top_original), 
-                "Top result from original should be in top-2 of pooled results");
-        
+        assert!(
+            top_pooled_ids.contains(&top_original),
+            "Top result from original should be in top-2 of pooled results"
+        );
+
         // Scores should be similar (relaxed for mock embeddings)
         let score_ratio = ranked_pooled[0].1 / ranked_original[0].1;
-        assert!(score_ratio >= 0.85, 
-                "Pooled scores should retain >85% of original (relaxed for mock data), got {:.1}%", score_ratio * 100.0);
+        assert!(
+            score_ratio >= 0.85,
+            "Pooled scores should retain >85% of original (relaxed for mock data), got {:.1}%",
+            score_ratio * 100.0
+        );
     }
 
     /// Test adaptive pooling strategy selection
     #[test]
     fn test_adaptive_pooling_strategy() {
-        let doc_tokens = mock_token_embed("machine learning algorithms neural networks deep artificial intelligence", 128);
+        let doc_tokens = mock_token_embed(
+            "machine learning algorithms neural networks deep artificial intelligence",
+            128,
+        );
 
         // Factor 2: Should use clustering (quality-focused)
         let pooled_2 = colbert::pool_tokens_adaptive(&doc_tokens, 2).unwrap();
@@ -325,12 +396,9 @@ mod tests {
         ];
 
         // Batch retrieve
-        let batch_results = rank_retrieve::batch::batch_retrieve_bm25(
-            &index,
-            &queries,
-            10,
-            Bm25Params::default(),
-        ).unwrap();
+        let batch_results =
+            rank_retrieve::batch::batch_retrieve_bm25(&index, &queries, 10, Bm25Params::default())
+                .unwrap();
 
         assert_eq!(batch_results.len(), queries.len());
 
@@ -339,7 +407,8 @@ mod tests {
             let query_text = queries[query_idx].join(" ");
             let query_tokens = mock_token_embed(&query_text, 128);
 
-            let doc_tokens: Vec<(u32, Vec<Vec<f32>>)> = results.iter()
+            let doc_tokens: Vec<(u32, Vec<Vec<f32>>)> = results
+                .iter()
                 .map(|(id, _)| {
                     let terms = vec![format!("term{}", id), format!("word{}", id)];
                     let doc_text = terms.join(" ");
@@ -349,8 +418,11 @@ mod tests {
 
             let reranked: Vec<(u32, f32)> = colbert::rank(&query_tokens, &doc_tokens);
             assert!(!reranked.is_empty());
-            assert_eq!(reranked[0].0, query_idx as u32, 
-                       "Query {} should rank doc {} highest", query_idx, query_idx);
+            assert_eq!(
+                reranked[0].0, query_idx as u32,
+                "Query {} should rank doc {} highest",
+                query_idx, query_idx
+            );
         }
     }
 
@@ -379,7 +451,8 @@ mod tests {
         let dense_results = retrieve_dense(&dense_retriever, &query_emb, 10).unwrap();
 
         // Late interaction reranking
-        let doc_tokens: Vec<(u32, Vec<Vec<f32>>)> = documents.iter()
+        let doc_tokens: Vec<(u32, Vec<Vec<f32>>)> = documents
+            .iter()
             .map(|(id, text)| (*id, mock_token_embed(text, 128)))
             .collect();
         let reranked: Vec<(u32, f32)> = colbert::rank(&query_tokens, &doc_tokens);
@@ -387,11 +460,12 @@ mod tests {
         // Both should work, but late interaction should handle multi-concept queries better
         assert!(!dense_results.is_empty());
         assert!(!reranked.is_empty());
-        
+
         // Late interaction should rank relevant documents (0, 1) highly
         let top_ids: Vec<u32> = reranked.iter().take(2).map(|(id, _)| *id).collect();
-        assert!(top_ids.contains(&0) || top_ids.contains(&1), 
-                "Late interaction should rank relevant documents highly");
+        assert!(
+            top_ids.contains(&0) || top_ids.contains(&1),
+            "Late interaction should rank relevant documents highly"
+        );
     }
 }
-

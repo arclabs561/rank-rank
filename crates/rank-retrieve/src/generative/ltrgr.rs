@@ -190,20 +190,20 @@ impl LTRGRTrainer {
             use rand::seq::SliceRandom;
             use rand::thread_rng;
             let mut rng = thread_rng();
-            
+
             // Randomly sample one positive and one negative
             let (_, pos_score) = positive_samples.choose(&mut rng).unwrap();
             let (_, neg_score) = negative_samples.choose(&mut rng).unwrap();
-            
+
             self.compute_rank_loss(*pos_score, *neg_score)
         }
-        
+
         #[cfg(not(feature = "ltrgr"))]
         {
             // Fallback: use first positive and first negative (deterministic)
             let (_, pos_score) = positive_samples[0];
             let (_, neg_score) = negative_samples[0];
-            
+
             self.compute_rank_loss(*pos_score, *neg_score)
         }
     }
@@ -239,7 +239,7 @@ mod tests {
     #[test]
     fn test_rank_loss_basic() {
         let trainer = LTRGRTrainer::new();
-        
+
         // Positive should have higher score than negative
         let loss = trainer.compute_rank_loss(10.0, 5.0);
         assert_eq!(loss, 495.0); // margin (500) + neg (5) - pos (10) = 495
@@ -300,10 +300,9 @@ mod tests {
             .with_margin(100.0)
             .with_lambda(500.0)
             .with_top_k(100);
-        
+
         assert_eq!(config.margin, 100.0);
         assert_eq!(config.lambda, 500.0);
         assert_eq!(config.top_k, 100);
     }
 }
-

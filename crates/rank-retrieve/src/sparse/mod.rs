@@ -13,7 +13,7 @@ mod vector;
 use crate::RetrieveError;
 
 // Re-export SparseVector and dot_product for convenience
-pub use self::vector::{SparseVector, dot_product};
+pub use self::vector::{dot_product, SparseVector};
 
 /// Sparse retriever using sparse vector dot products.
 pub struct SparseRetriever {
@@ -28,7 +28,7 @@ impl SparseRetriever {
             documents: Vec::new(),
         }
     }
-    
+
     /// Add a document with its sparse vector representation.
     ///
     /// # Arguments
@@ -38,7 +38,7 @@ impl SparseRetriever {
     pub fn add_document(&mut self, doc_id: u32, vector: SparseVector) {
         self.documents.push((doc_id, vector));
     }
-    
+
     /// Score a document against a query using dot product.
     ///
     /// # Arguments
@@ -55,7 +55,7 @@ impl SparseRetriever {
             .find(|(id, _)| *id == doc_id)
             .map(|(_, doc_vector)| dot_product(query_vector, doc_vector))
     }
-    
+
     /// Retrieve top-k documents for a query.
     ///
     /// # Arguments
@@ -71,26 +71,31 @@ impl SparseRetriever {
     ///
     /// Returns `RetrieveError::EmptyQuery` if query vector is empty.
     /// Returns `RetrieveError::EmptyIndex` if index has no documents.
-    pub fn retrieve(&self, query_vector: &SparseVector, k: usize) -> Result<Vec<(u32, f32)>, RetrieveError> {
+    pub fn retrieve(
+        &self,
+        query_vector: &SparseVector,
+        k: usize,
+    ) -> Result<Vec<(u32, f32)>, RetrieveError> {
         if query_vector.indices.is_empty() {
             return Err(RetrieveError::EmptyQuery);
         }
-        
+
         if self.documents.is_empty() {
             return Err(RetrieveError::EmptyIndex);
         }
-        
-        let mut scored: Vec<(u32, f32)> = self.documents
+
+        let mut scored: Vec<(u32, f32)> = self
+            .documents
             .iter()
             .map(|(doc_id, doc_vector)| {
                 let score = dot_product(query_vector, doc_vector);
                 (*doc_id, score)
             })
             .collect();
-        
+
         // Sort by score descending
         scored.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
-        
+
         // Return top-k
         Ok(scored.into_iter().take(k).collect())
     }
@@ -124,28 +129,27 @@ impl crate::retriever::RetrieverBuilder for SparseRetriever {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_sparse_retrieval() {
         let mut retriever = SparseRetriever::new();
-        
+
         // Document 0: terms 0, 1, 2 with weights 1.0, 0.5, 0.3
         let doc0 = SparseVector::new_unchecked(vec![0, 1, 2], vec![1.0, 0.5, 0.3]);
         retriever.add_document(0, doc0);
-        
+
         // Document 1: terms 1, 2, 3 with weights 0.8, 0.6, 0.4
         let doc1 = SparseVector::new_unchecked(vec![1, 2, 3], vec![0.8, 0.6, 0.4]);
         retriever.add_document(1, doc1);
-        
+
         // Query: terms 0, 1 with weights 1.0, 1.0
         let query = SparseVector::new_unchecked(vec![0, 1], vec![1.0, 1.0]);
-        
+
         let results = retriever.retrieve(&query, 10).unwrap();
-        
+
         // Document 0 should score higher (has term 0 with weight 1.0)
         assert_eq!(results.len(), 2);
         assert_eq!(results[0].0, 0); // doc 0 should be first
         assert!(results[0].1 > results[1].1);
     }
 }
-

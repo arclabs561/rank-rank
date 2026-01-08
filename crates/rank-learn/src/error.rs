@@ -17,18 +17,22 @@ pub enum LearnError {
     /// Invalid relevance scores (e.g., negative values when not allowed).
     InvalidRelevance(String),
     /// Invalid NDCG computation (e.g., k=0 or k > length).
-    InvalidNDCG {
-        k: usize,
-        length: usize,
-    },
+    InvalidNDCG { k: usize, length: usize },
 }
 
 impl fmt::Display for LearnError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             LearnError::EmptyInput => write!(f, "Input is empty"),
-            LearnError::LengthMismatch { scores_len, relevance_len } => {
-                write!(f, "Length mismatch: scores has {} elements, relevance has {}", scores_len, relevance_len)
+            LearnError::LengthMismatch {
+                scores_len,
+                relevance_len,
+            } => {
+                write!(
+                    f,
+                    "Length mismatch: scores has {} elements, relevance has {}",
+                    scores_len, relevance_len
+                )
             }
             LearnError::InvalidParameter(msg) => write!(f, "Invalid parameter: {}", msg),
             LearnError::InvalidRelevance(msg) => write!(f, "Invalid relevance: {}", msg),
@@ -40,4 +44,3 @@ impl fmt::Display for LearnError {
 }
 
 impl std::error::Error for LearnError {}
-

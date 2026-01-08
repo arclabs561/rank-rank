@@ -12,10 +12,7 @@ pub enum RetrieveError {
     /// Invalid parameter value.
     InvalidParameter(String),
     /// Dimension mismatch between query and documents.
-    DimensionMismatch {
-        query_dim: usize,
-        doc_dim: usize,
-    },
+    DimensionMismatch { query_dim: usize, doc_dim: usize },
     /// Invalid sparse vector (empty or malformed).
     InvalidSparseVector(String),
     /// Other error (for extensibility).
@@ -29,7 +26,11 @@ impl fmt::Display for RetrieveError {
             RetrieveError::EmptyIndex => write!(f, "Index is empty"),
             RetrieveError::InvalidParameter(msg) => write!(f, "Invalid parameter: {}", msg),
             RetrieveError::DimensionMismatch { query_dim, doc_dim } => {
-                write!(f, "Dimension mismatch: query has {} dimensions, document has {}", query_dim, doc_dim)
+                write!(
+                    f,
+                    "Dimension mismatch: query has {} dimensions, document has {}",
+                    query_dim, doc_dim
+                )
             }
             RetrieveError::InvalidSparseVector(msg) => {
                 write!(f, "Invalid sparse vector: {}", msg)
@@ -42,4 +43,3 @@ impl fmt::Display for RetrieveError {
 }
 
 impl std::error::Error for RetrieveError {}
-

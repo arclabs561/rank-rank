@@ -62,9 +62,9 @@ pub use error::LearnError;
 
 /// Re-export commonly used types.
 pub mod prelude {
-    pub use crate::lambdarank::{LambdaRankParams, LambdaRankTrainer, ndcg_at_k};
-    pub use crate::ranking_svm::{RankingSVMParams, RankingSVMTrainer};
+    pub use crate::lambdarank::{ndcg_at_k, LambdaRankParams, LambdaRankTrainer};
     pub use crate::neural::{NeuralLTRConfig, NeuralLTRModel};
+    pub use crate::ranking_svm::{RankingSVMParams, RankingSVMTrainer};
     pub use crate::LearnError;
 }
 

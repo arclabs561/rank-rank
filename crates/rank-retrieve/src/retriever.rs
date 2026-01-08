@@ -116,7 +116,11 @@ mod tests {
     impl Retriever for MockRetriever {
         type Query = &'static str;
 
-        fn retrieve(&self, _query: &Self::Query, k: usize) -> Result<Vec<(u32, f32)>, RetrieveError> {
+        fn retrieve(
+            &self,
+            _query: &Self::Query,
+            k: usize,
+        ) -> Result<Vec<(u32, f32)>, RetrieveError> {
             Ok(self.results.iter().take(k).copied().collect())
         }
     }
@@ -151,4 +155,3 @@ mod tests {
         assert_eq!(results.len(), 2);
     }
 }
-

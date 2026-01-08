@@ -10,19 +10,23 @@
 //! 3. Token pooling for storage optimization
 //! 4. Integration with rank-fusion and rank-eval
 
-#[cfg(feature = "bm25")]
-use rank_retrieve::{retrieve_bm25, bm25::{Bm25Params, InvertedIndex}};
+use rank_eval::binary::ndcg_at_k;
+use rank_fusion::rrf;
+use rank_rerank::colbert;
 #[cfg(feature = "dense")]
 use rank_retrieve::retrieve_dense;
-use rank_rerank::colbert;
-use rank_fusion::rrf;
-use rank_eval::binary::ndcg_at_k;
+#[cfg(feature = "bm25")]
+use rank_retrieve::{
+    bm25::{Bm25Params, InvertedIndex},
+    retrieve_bm25,
+};
 use std::collections::HashSet;
 
 // Mock ColBERT encoder (in practice, use a real ColBERT model)
 fn encode_query(query: &str) -> Vec<Vec<f32>> {
     // Simplified: in practice, use a ColBERT model to encode query tokens
-    query.split_whitespace()
+    query
+        .split_whitespace()
         .map(|word| {
             // Mock embedding: in practice, use actual ColBERT encoder
             let mut emb = vec![0.0; 128];
@@ -62,7 +66,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Query
     let query_text = "machine learning neural networks";
-    let query_terms: Vec<String> = query_text.split_whitespace().map(|s| s.to_string()).collect();
+    let query_terms: Vec<String> = query_text
+        .split_whitespace()
+        .map(|s| s.to_string())
+        .collect();
 
     // Step 1: First-stage retrieval with BM25 (rank-retrieve)
     // Research shows BM25 provides excellent recall for most queries
@@ -71,9 +78,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Step 2: Prepare token embeddings for reranking
     let query_tokens = encode_query(query_text);
-    
+
     // Get document token embeddings (in practice, these would be pre-computed and stored)
-    let doc_tokens: Vec<(u32, Vec<Vec<f32>>)> = candidates.iter()
+    let doc_tokens: Vec<(u32, Vec<Vec<f32>>)> = candidates
+        .iter()
         .map(|(id, _)| {
             let doc_text = documents.iter().find(|(d_id, _)| d_id == id).unwrap().1;
             (*id, encode_document(doc_text))
@@ -97,8 +105,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let pooled = colbert::pool_tokens(tokens, 2)?;
         let pooled_count = pooled.len();
         let reduction = 100.0 * (1.0 - (pooled_count as f32 / original_count as f32));
-        println!("  Doc {}: {} tokens → {} tokens ({:.1}% reduction)", 
-                 id, original_count, pooled_count, reduction);
+        println!(
+            "  Doc {}: {} tokens → {} tokens ({:.1}% reduction)",
+            id, original_count, pooled_count, reduction
+        );
     }
 
     // Step 5: Optional - Hybrid retrieval with fusion
@@ -116,10 +126,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let dense_results = retrieve_dense(&dense_retriever, &query_embedding, 1000)?;
 
         // Convert to String IDs for fusion
-        let bm25_string: Vec<(String, f32)> = candidates.iter()
+        let bm25_string: Vec<(String, f32)> = candidates
+            .iter()
             .map(|(id, score)| (id.to_string(), *score))
             .collect();
-        let dense_string: Vec<(String, f32)> = dense_results.iter()
+        let dense_string: Vec<(String, f32)> = dense_results
+            .iter()
             .map(|(id, score)| (id.to_string(), *score))
             .collect();
 
@@ -135,7 +147,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let relevant: HashSet<String> = ["0", "1"].iter().map(|s| s.to_string()).collect();
     let ndcg = ndcg_at_k(&ranked_ids, &relevant, 10);
     println!("\nEvaluation: nDCG@10 = {:.4}", ndcg);
-    
+
     println!("\n✅ Pipeline complete! This demonstrates the research-backed approach:");
     println!("   - BM25 first-stage retrieval (rank-retrieve)");
     println!("   - MaxSim reranking (rank-rerank)");
@@ -144,4 +156,3 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     Ok(())
 }
-

@@ -97,16 +97,18 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         (0, "Prime Rate in Canada is a guideline interest rate used by banks on loans for their most creditworthy clients."),
         (1, "Machine learning is a subset of artificial intelligence that focuses on algorithms and statistical models."),
     ];
-    
+
     for (passage_id, passage_text) in &sample_passages {
         let identifiers = generator.generate(passage_text, *passage_id);
         println!("Passage {}:", passage_id);
         println!("  Title: {}", identifiers.title);
-        println!("  Substring: {}...", &identifiers.substring[..identifiers.substring.len().min(50)]);
+        println!(
+            "  Substring: {}...",
+            &identifiers.substring[..identifiers.substring.len().min(50)]
+        );
         println!("  Pseudo-query: {}", identifiers.pseudo_query);
         println!();
     }
 
     Ok(())
 }
-

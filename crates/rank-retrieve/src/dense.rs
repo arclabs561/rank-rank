@@ -44,9 +44,9 @@
 //! - See `examples/usearch_integration.rs` for HNSW integration
 //! - See `examples/qdrant_real_integration.rs` for Qdrant integration
 
-use crate::RetrieveError;
 #[cfg(feature = "dense")]
 use crate::retriever::{Retriever, RetrieverBuilder};
+use crate::RetrieveError;
 
 /// Dense retriever using cosine similarity.
 ///
@@ -64,7 +64,7 @@ impl DenseRetriever {
             documents: Vec::new(),
         }
     }
-    
+
     /// Add a document with its dense embedding.
     ///
     /// # Arguments
@@ -74,7 +74,7 @@ impl DenseRetriever {
     pub fn add_document(&mut self, doc_id: u32, embedding: Vec<f32>) {
         self.documents.push((doc_id, embedding));
     }
-    
+
     /// Compute cosine similarity between two vectors.
     ///
     /// Assumes vectors are L2-normalized (unit length).
@@ -85,7 +85,7 @@ impl DenseRetriever {
         }
         a.iter().zip(b.iter()).map(|(x, y)| x * y).sum()
     }
-    
+
     /// Score a document against a query using cosine similarity.
     ///
     /// # Arguments
@@ -102,7 +102,7 @@ impl DenseRetriever {
             .find(|(id, _)| *id == doc_id)
             .map(|(_, doc_embedding)| Self::cosine_similarity(doc_embedding, query_embedding))
     }
-    
+
     /// Retrieve top-k documents for a query.
     ///
     /// # Arguments
@@ -127,18 +127,22 @@ impl DenseRetriever {
     /// - `rank-retrieve::integration::hnsw::HNSWBackend` (feature: `hnsw`)
     /// - `rank-retrieve::integration::usearch::UsearchBackend` (feature: `usearch`)
     /// - `rank-retrieve::integration::faiss::FaissBackend` (feature: `faiss`)
-    pub fn retrieve(&self, query_embedding: &[f32], k: usize) -> Result<Vec<(u32, f32)>, RetrieveError> {
+    pub fn retrieve(
+        &self,
+        query_embedding: &[f32],
+        k: usize,
+    ) -> Result<Vec<(u32, f32)>, RetrieveError> {
         if query_embedding.is_empty() {
             return Err(RetrieveError::EmptyQuery);
         }
-        
+
         if self.documents.is_empty() {
             return Err(RetrieveError::EmptyIndex);
         }
-        
+
         let query_dim = query_embedding.len();
         let mut scored: Vec<(u32, f32)> = Vec::new();
-        
+
         for (doc_id, doc_embedding) in &self.documents {
             if doc_embedding.len() != query_dim {
                 return Err(RetrieveError::DimensionMismatch {
@@ -149,10 +153,10 @@ impl DenseRetriever {
             let score = Self::cosine_similarity(doc_embedding, query_embedding);
             scored.push((*doc_id, score));
         }
-        
+
         // Sort by score descending
         scored.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
-        
+
         // Return top-k
         Ok(scored.into_iter().take(k).collect())
     }
@@ -186,22 +190,22 @@ impl Default for DenseRetriever {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_dense_retrieval() {
         let mut retriever = DenseRetriever::new();
-        
+
         // Document 0: [1.0, 0.0] (normalized)
         retriever.add_document(0, vec![1.0, 0.0]);
-        
+
         // Document 1: [0.707, 0.707] (normalized)
         retriever.add_document(1, vec![0.707, 0.707]);
-        
+
         // Query: [1.0, 0.0]
         let query = vec![1.0, 0.0];
-        
+
         let results = retriever.retrieve(&query, 10).unwrap();
-        
+
         // Document 0 should score 1.0 (exact match)
         // Document 1 should score 0.707 (cosine similarity)
         assert_eq!(results.len(), 2);
@@ -210,4 +214,3 @@ mod tests {
         assert!((results[1].1 - 0.707).abs() < 0.01);
     }
 }
-

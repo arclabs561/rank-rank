@@ -86,7 +86,6 @@ impl AutoregressiveModel for MockAutoregressiveModel {
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -97,7 +96,7 @@ mod tests {
         let identifiers = model
             .generate("What is prime rate?", "title", 5, None)
             .unwrap();
-        
+
         assert!(!identifiers.is_empty());
         assert!(identifiers[0].1 > 0.0);
     }
@@ -105,11 +104,10 @@ mod tests {
     #[test]
     fn test_mock_model_different_prefixes() {
         let model = MockAutoregressiveModel::new();
-        
+
         let title_ids = model.generate("test query", "title", 3, None).unwrap();
         let substring_ids = model.generate("test query", "substring", 3, None).unwrap();
-        
+
         assert_ne!(title_ids[0].0, substring_ids[0].0);
     }
 }
-

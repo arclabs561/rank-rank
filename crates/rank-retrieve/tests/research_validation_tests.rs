@@ -5,11 +5,11 @@
 
 #[cfg(test)]
 mod tests {
-    use proptest::prelude::*;
-use std::result::Result as StdResult;
     use crate::test_helpers::{mock_dense_embed, mock_token_embed};
+    use proptest::prelude::*;
     use rank_rerank::colbert;
     use rank_rerank::simd;
+    use std::result::Result as StdResult;
 
     /// Property: Token pooling always reduces vector count (research: 50-66% for factor 2-3)
     #[test]
@@ -18,7 +18,7 @@ use std::result::Result as StdResult;
             let tokens = mock_token_embed(&text, 128);
             if tokens.len() >= 2 {
                 let pooled = colbert::pool_tokens(&tokens, 2).unwrap();
-                prop_assert!(pooled.len() <= tokens.len(), 
+                prop_assert!(pooled.len() <= tokens.len(),
                              "Pooling should never increase count");
                 prop_assert!(pooled.len() >= 1, "Should always have at least 1 token");
             }
@@ -65,38 +65,38 @@ use std::result::Result as StdResult;
         proptest!(|(doc_text in "[a-z ]{10,50}", query_text in "[a-z ]{5,20}")| {
             let doc_tokens = mock_token_embed(&doc_text, 128);
             let query_tokens = mock_token_embed(&query_text, 128);
-            
+
             // Skip if tokens are empty
             if doc_tokens.is_empty() || query_tokens.is_empty() {
                 return Ok(());
             }
-            
+
             let score_original = simd::maxsim(
                 &query_tokens.iter().map(|v| v.as_slice()).collect::<Vec<_>>(),
                 &doc_tokens.iter().map(|v| v.as_slice()).collect::<Vec<_>>(),
             );
-            
+
             // Skip if original score is very low (mock embeddings may not match well)
             // This is an edge case with mock data, not a real-world scenario
             if score_original < 0.05 {
                 return Ok(());
             }
-            
+
             let pooled = colbert::pool_tokens(&doc_tokens, 2).unwrap();
             if pooled.is_empty() {
                 return Ok(());
             }
-            
+
             let score_pooled = simd::maxsim(
                 &query_tokens.iter().map(|v| v.as_slice()).collect::<Vec<_>>(),
                 &pooled.iter().map(|v| v.as_slice()).collect::<Vec<_>>(),
             );
-            
+
             // Research: >90% quality retention for factor 2 (with real embeddings)
             // With mock embeddings, we validate that pooling doesn't catastrophically degrade
             // quality. Relaxed threshold accounts for mock embedding limitations.
             let retention = score_pooled / score_original;
-            
+
             // For mock embeddings, we validate that pooling doesn't make things worse
             // than expected. Real embeddings would show >90% retention.
             prop_assert!(retention >= 0.50 || score_original < 0.1,
@@ -111,20 +111,20 @@ use std::result::Result as StdResult;
         proptest!(|(query_text in "[a-z ]{5,20}", doc_text in "[a-z ]{10,50}")| {
             let query_tokens = mock_token_embed(&query_text, 128);
             let doc_tokens = mock_token_embed(&doc_text, 128);
-            
+
             if !query_tokens.is_empty() && !doc_tokens.is_empty() {
                 let score_full = simd::maxsim(
                     &query_tokens.iter().map(|v| v.as_slice()).collect::<Vec<_>>(),
                     &doc_tokens.iter().map(|v| v.as_slice()).collect::<Vec<_>>(),
                 );
-                
+
                 let query_pooled = colbert::pool_tokens(&query_tokens, 2).unwrap();
                 if !query_pooled.is_empty() {
                     let score_pooled_query = simd::maxsim(
                         &query_pooled.iter().map(|v| v.as_slice()).collect::<Vec<_>>(),
                         &doc_tokens.iter().map(|v| v.as_slice()).collect::<Vec<_>>(),
                     );
-                    
+
                     // Research finding: Full resolution queries perform better
                     prop_assert!(score_full >= score_pooled_query,
                                 "Full resolution queries should perform better");
@@ -155,7 +155,7 @@ use std::result::Result as StdResult;
                 // Factor 2: Should use clustering
                 let pooled_2 = colbert::pool_tokens_adaptive(&tokens, 2).unwrap();
                 prop_assert!(pooled_2.len() <= tokens.len() / 2 + 1);
-                
+
                 // Factor 4: Should use sequential
                 let pooled_4 = colbert::pool_tokens_adaptive(&tokens, 4).unwrap();
                 prop_assert!(pooled_4.len() <= tokens.len() / 4 + 1);
@@ -168,4 +168,3 @@ use std::result::Result as StdResult;
 #[cfg(test)]
 #[path = "test_helpers.rs"]
 mod test_helpers;
-

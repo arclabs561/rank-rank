@@ -18,17 +18,15 @@ fn generate_documents(n_docs: usize, terms_per_doc: usize, vocab_size: usize) ->
 fn bench_indexing(c: &mut Criterion) {
     let mut group = c.benchmark_group("bm25_indexing");
 
-    for (n_docs, terms_per_doc) in [
-        (100, 50),
-        (1000, 100),
-        (10000, 200),
-        (100000, 300),
-    ].iter() {
+    for (n_docs, terms_per_doc) in [(100, 50), (1000, 100), (10000, 200), (100000, 300)].iter() {
         let vocab_size = 1000;
         let documents = generate_documents(*n_docs, *terms_per_doc, vocab_size);
 
         group.bench_with_input(
-            BenchmarkId::new("add_documents", format!("{}docs_{}terms", n_docs, terms_per_doc)),
+            BenchmarkId::new(
+                "add_documents",
+                format!("{}docs_{}terms", n_docs, terms_per_doc),
+            ),
             &documents,
             |b, docs| {
                 b.iter(|| {
@@ -52,7 +50,9 @@ fn bench_retrieval(c: &mut Criterion) {
         (1000, 100, 5, 10),
         (10000, 200, 10, 20),
         (100000, 300, 15, 50),
-    ].iter() {
+    ]
+    .iter()
+    {
         let vocab_size = 1000;
         let documents = generate_documents(*n_docs, *terms_per_doc, vocab_size);
 
@@ -86,11 +86,7 @@ fn bench_retrieval(c: &mut Criterion) {
 fn bench_scoring(c: &mut Criterion) {
     let mut group = c.benchmark_group("bm25_scoring");
 
-    for (n_docs, terms_per_doc) in [
-        (1000, 100),
-        (10000, 200),
-        (100000, 300),
-    ].iter() {
+    for (n_docs, terms_per_doc) in [(1000, 100), (10000, 200), (100000, 300)].iter() {
         let vocab_size = 1000;
         let documents = generate_documents(*n_docs, *terms_per_doc, vocab_size);
 
@@ -124,11 +120,5 @@ fn bench_scoring(c: &mut Criterion) {
     group.finish();
 }
 
-criterion_group!(
-    benches,
-    bench_indexing,
-    bench_retrieval,
-    bench_scoring
-);
+criterion_group!(benches, bench_indexing, bench_retrieval, bench_scoring);
 criterion_main!(benches);
-

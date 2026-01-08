@@ -3,9 +3,9 @@
 use proptest::prelude::*;
 use rank_retrieve::bm25::{Bm25Params, InvertedIndex};
 use rank_retrieve::dense::DenseRetriever;
-use rank_retrieve::sparse::SparseRetriever;
-use rank_retrieve::sparse::{SparseVector, dot_product};
 use rank_retrieve::generative::{GenerativeRetriever, MockAutoregressiveModel};
+use rank_retrieve::sparse::SparseRetriever;
+use rank_retrieve::sparse::{dot_product, SparseVector};
 
 proptest! {
     #[test]
@@ -15,9 +15,9 @@ proptest! {
     ) {
         let mut index = InvertedIndex::new();
         index.add_document(0, &doc_terms);
-        
+
         let results = index.retrieve(&query_terms, 10, Bm25Params::default()).unwrap();
-        
+
         for (_, score) in results {
             prop_assert!(score >= 0.0, "BM25 scores must be non-negative");
         }
@@ -31,9 +31,9 @@ proptest! {
     ) {
         let mut index = InvertedIndex::new();
         index.add_document(0, &doc_terms);
-        
+
         let results = index.retrieve(&query_terms, k, Bm25Params::default()).unwrap();
-        
+
         prop_assert!(results.len() <= k, "retrieve() must return at most k results");
     }
 
@@ -44,9 +44,9 @@ proptest! {
     ) {
         let mut index = InvertedIndex::new();
         index.add_document(0, &doc_terms);
-        
+
         let results = index.retrieve(&query_terms, 10, Bm25Params::default()).unwrap();
-        
+
         for i in 1..results.len() {
             prop_assert!(
                 results[i-1].1 >= results[i].1,
@@ -62,10 +62,10 @@ proptest! {
     ) {
         let mut retriever = DenseRetriever::new();
         retriever.add_document(0, vec![1.0; embedding_dim]);
-        
+
         let query = vec![1.0; embedding_dim];
         let results = retriever.retrieve(&query, k).unwrap();
-        
+
         prop_assert!(results.len() <= k, "retrieve() must return at most k results");
     }
 
@@ -75,10 +75,10 @@ proptest! {
     ) {
         let mut retriever = DenseRetriever::new();
         retriever.add_document(0, vec![1.0; embedding_dim]);
-        
+
         let query = vec![1.0; embedding_dim];
         let results = retriever.retrieve(&query, 10).unwrap();
-        
+
         for (_, score) in results {
             prop_assert!(
                 score.is_finite(),
@@ -94,10 +94,10 @@ proptest! {
         let mut retriever = DenseRetriever::new();
         retriever.add_document(0, vec![1.0; embedding_dim]);
         retriever.add_document(1, vec![0.5; embedding_dim]);
-        
+
         let query = vec![1.0; embedding_dim];
         let results = retriever.retrieve(&query, 10).unwrap();
-        
+
         for i in 1..results.len() {
             prop_assert!(
                 results[i-1].1 >= results[i].1,
@@ -116,10 +116,10 @@ proptest! {
         let values = vec![1.0; num_terms];
         let doc_vector = SparseVector::new(indices.clone(), values.clone()).unwrap();
         retriever.add_document(0, doc_vector);
-        
+
         let query_vector = SparseVector::new(indices, values).unwrap();
         let results = retriever.retrieve(&query_vector, k).unwrap();
-        
+
         prop_assert!(results.len() <= k, "retrieve() must return at most k results");
     }
 
@@ -132,10 +132,10 @@ proptest! {
         let values = vec![1.0; num_terms];
         let doc_vector = SparseVector::new(indices.clone(), values.clone()).unwrap();
         retriever.add_document(0, doc_vector);
-        
+
         let query_vector = SparseVector::new(indices, values).unwrap();
         let results = retriever.retrieve(&query_vector, 10).unwrap();
-        
+
         for i in 1..results.len() {
             prop_assert!(
                 results[i-1].1 >= results[i].1,
@@ -154,20 +154,20 @@ proptest! {
         if term1 == term2 {
             return Ok(());
         }
-        
+
         let mut index = InvertedIndex::new();
-        
+
         // Add term1 to all documents (common term)
         for doc_id in 0..num_docs {
             index.add_document(doc_id, &[term1.clone()]);
         }
-        
+
         // Add term2 to only one document (rare term)
         index.add_document(num_docs, &[term2.clone()]);
-        
+
         let idf_common = index.idf(&term1);
         let idf_rare = index.idf(&term2);
-        
+
         // Rare term should have higher IDF
         prop_assert!(
             idf_rare > idf_common,
@@ -181,7 +181,7 @@ proptest! {
         num_docs in 1usize..20,
     ) {
         let mut retriever = DenseRetriever::new();
-        
+
         // Add documents with normalized embeddings
         for doc_id in 0..num_docs {
             let mut embedding = vec![0.0; embedding_dim];
@@ -191,10 +191,10 @@ proptest! {
             }
             retriever.add_document(doc_id as u32, embedding);
         }
-        
+
         let query = vec![1.0; embedding_dim];
         let results = retriever.retrieve(&query, num_docs).unwrap();
-        
+
         for (_, score) in results {
             prop_assert!(
                 score >= -1.0 && score <= 1.0,
@@ -210,13 +210,13 @@ proptest! {
         let indices: Vec<u32> = (0..num_terms).map(|i| i as u32).collect();
         let values1: Vec<f32> = (0..num_terms).map(|i| (i as f32) * 0.1).collect();
         let values2: Vec<f32> = (0..num_terms).map(|i| (i as f32) * 0.2).collect();
-        
+
         let v1 = SparseVector::new(indices.clone(), values1.clone()).unwrap();
         let v2 = SparseVector::new(indices, values2.clone()).unwrap();
-        
+
         let dot1 = dot_product(&v1, &v2);
         let dot2 = dot_product(&v2, &v1);
-        
+
         prop_assert!(
             (dot1 - dot2).abs() < 1e-6,
             "Dot product must be commutative"
@@ -229,7 +229,7 @@ proptest! {
     ) {
         let mut index = InvertedIndex::new();
         index.add_document(0, &doc_terms);
-        
+
         let result = index.retrieve(&[], 10, Bm25Params::default());
         prop_assert!(
             result.is_err(),
@@ -242,7 +242,7 @@ proptest! {
         query_terms in prop::collection::vec(prop::string::string_regex("[a-z]{1,10}").unwrap(), 1..20),
     ) {
         let index = InvertedIndex::new();
-        
+
         let result = index.retrieve(&query_terms, 10, Bm25Params::default());
         prop_assert!(
             result.is_err(),
@@ -258,13 +258,13 @@ proptest! {
         if doc_dim == query_dim {
             return Ok(()); // Skip when dimensions match
         }
-        
+
         let mut retriever = DenseRetriever::new();
         retriever.add_document(0, vec![1.0; doc_dim]);
-        
+
         let query = vec![1.0; query_dim];
         let result = retriever.retrieve(&query, 10);
-        
+
         prop_assert!(
             result.is_err(),
             "Dimension mismatch should return error"
@@ -280,7 +280,7 @@ proptest! {
         for doc_id in 0..num_docs {
             index.add_document(doc_id, &[term.clone()]);
         }
-        
+
         let idf = index.idf(&term);
         prop_assert!(
             idf >= 0.0,
@@ -295,13 +295,13 @@ proptest! {
         let mut retriever = DenseRetriever::new();
         let emb1: Vec<f32> = (0..embedding_dim).map(|i| (i as f32) * 0.01).collect();
         let emb2: Vec<f32> = (0..embedding_dim).map(|i| ((i + 1) as f32) * 0.01).collect();
-        
+
         retriever.add_document(0, emb1.clone());
         retriever.add_document(1, emb2.clone());
-        
+
         let score1 = retriever.score(0, &emb2);
         let score2 = retriever.score(1, &emb1);
-        
+
         if let (Some(s1), Some(s2)) = (score1, score2) {
             prop_assert!(
                 (s1 - s2).abs() < 1e-6,
@@ -316,10 +316,10 @@ proptest! {
     ) {
         let indices: Vec<u32> = (0..num_terms).map(|i| i as u32).collect();
         let values: Vec<f32> = (0..num_terms).map(|i| (i as f32) * 0.1 + 0.1).collect(); // All positive
-        
+
         let v1 = SparseVector::new(indices.clone(), values.clone()).unwrap();
         let v2 = SparseVector::new(indices, values).unwrap();
-        
+
         let dot = dot_product(&v1, &v2);
         prop_assert!(
             dot >= 0.0,
@@ -334,26 +334,26 @@ proptest! {
     ) {
         // Create two documents: one with query_term once, one with it multiple times
         let mut index = InvertedIndex::new();
-        
+
         let mut doc1_terms = base_terms.clone();
         doc1_terms.push(query_term.clone());
         index.add_document(0, &doc1_terms);
-        
+
         let mut doc2_terms = base_terms;
         // Add query_term multiple times
         for _ in 0..5 {
             doc2_terms.push(query_term.clone());
         }
         index.add_document(1, &doc2_terms);
-        
+
         let results = index.retrieve(&[query_term], 10, Bm25Params::default()).unwrap();
-        
+
         if results.len() >= 2 {
             // Document with more occurrences should score higher (generally)
             // Note: This isn't always true due to IDF, but with same term it should be
             let score0 = results.iter().find(|(id, _)| *id == 0).map(|(_, s)| *s);
             let score1 = results.iter().find(|(id, _)| *id == 1).map(|(_, s)| *s);
-            
+
             if let (Some(s0), Some(s1)) = (score0, score1) {
                 // Document 1 has more occurrences, should generally score higher
                 // But this depends on document length normalization, so we just verify scores are finite
@@ -368,20 +368,20 @@ proptest! {
         num_docs in 1usize..20,
     ) {
         let mut retriever = DenseRetriever::new();
-        
+
         // Add documents
         for doc_id in 0..num_docs {
             let mut embedding = vec![0.0; embedding_dim];
             embedding[doc_id % embedding_dim] = 1.0; // One-hot encoding
             retriever.add_document(doc_id as u32, embedding);
         }
-        
+
         // Query should match document 0 best
         let query: Vec<f32> = (0..embedding_dim).map(|i| if i == 0 { 1.0 } else { 0.0 }).collect();
-        
+
         let results1 = retriever.retrieve(&query, num_docs).unwrap();
         let results2 = retriever.retrieve(&query, num_docs).unwrap();
-        
+
         // Results should be consistent across calls
         prop_assert_eq!(results1.len(), results2.len());
         for ((id1, s1), (id2, s2)) in results1.iter().zip(results2.iter()) {
@@ -400,15 +400,15 @@ proptest! {
         if query.trim().is_empty() {
             return Ok(());
         }
-        
+
         let model = MockAutoregressiveModel::new();
         let mut retriever = GenerativeRetriever::new(model);
-        
+
         for doc_id in 0..num_docs {
             let passage = format!("Document {} content with some text", doc_id);
             retriever.add_document(doc_id as u32, &passage);
         }
-        
+
         let results = retriever.retrieve(&query, k).unwrap();
         prop_assert!(results.len() <= k, "retrieve() must return at most k results");
     }
@@ -422,15 +422,15 @@ proptest! {
         if query.trim().is_empty() {
             return Ok(());
         }
-        
+
         let model = MockAutoregressiveModel::new();
         let mut retriever = GenerativeRetriever::new(model);
-        
+
         for doc_id in 0..num_docs {
             let passage = format!("Document {} content with some text", doc_id);
             retriever.add_document(doc_id as u32, &passage);
         }
-        
+
         let results = retriever.retrieve(&query, num_docs).unwrap();
         for (_, score) in results {
             prop_assert!(score >= 0.0, "Generative scores must be non-negative");
@@ -446,15 +446,15 @@ proptest! {
         if query.trim().is_empty() {
             return Ok(());
         }
-        
+
         let model = MockAutoregressiveModel::new();
         let mut retriever = GenerativeRetriever::new(model);
-        
+
         for doc_id in 0..num_docs {
             let passage = format!("Document {} content with some text", doc_id);
             retriever.add_document(doc_id as u32, &passage);
         }
-        
+
         let results = retriever.retrieve(&query, num_docs).unwrap();
         for i in 1..results.len() {
             prop_assert!(
@@ -473,15 +473,15 @@ proptest! {
         if query.trim().is_empty() {
             return Ok(());
         }
-        
+
         let model = MockAutoregressiveModel::new();
         let mut retriever = GenerativeRetriever::new(model);
-        
+
         for doc_id in 0..num_docs {
             let passage = format!("Document {} content with some text", doc_id);
             retriever.add_document(doc_id as u32, &passage);
         }
-        
+
         let results = retriever.retrieve(&query, num_docs).unwrap();
         for (_, score) in results {
             prop_assert!(score.is_finite(), "Scores must be finite");
@@ -494,12 +494,12 @@ proptest! {
     ) {
         let model = MockAutoregressiveModel::new();
         let mut retriever = GenerativeRetriever::new(model);
-        
+
         for doc_id in 0..num_docs {
             let passage = format!("Document {} content", doc_id);
             retriever.add_document(doc_id as u32, &passage);
         }
-        
+
         let result = retriever.retrieve("", num_docs);
         prop_assert!(result.is_err(), "Empty query should return error");
     }
@@ -510,7 +510,7 @@ proptest! {
     ) {
         let model = MockAutoregressiveModel::new();
         let retriever = GenerativeRetriever::new(model);
-        
+
         let result = retriever.retrieve(&query, 10);
         prop_assert!(result.is_err(), "Empty index should return error");
     }
@@ -524,18 +524,18 @@ proptest! {
         if query.trim().is_empty() {
             return Ok(());
         }
-        
+
         let model = MockAutoregressiveModel::new();
         let mut retriever = GenerativeRetriever::new(model);
-        
+
         for doc_id in 0..num_docs {
             let passage = format!("Document {} content with some text", doc_id);
             retriever.add_document(doc_id as u32, &passage);
         }
-        
+
         let results1 = retriever.retrieve(&query, num_docs).unwrap();
         let results2 = retriever.retrieve(&query, num_docs).unwrap();
-        
+
         // Results should be consistent across calls
         prop_assert_eq!(results1.len(), results2.len());
         for ((id1, s1), (id2, s2)) in results1.iter().zip(results2.iter()) {
@@ -544,4 +544,3 @@ proptest! {
         }
     }
 }
-

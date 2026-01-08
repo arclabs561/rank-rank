@@ -4,7 +4,7 @@
 
 #[cfg(test)]
 mod tests {
-    use rank_learn::lambdarank::{LambdaRankTrainer, ndcg_at_k, LambdaRankParams};
+    use rank_learn::lambdarank::{ndcg_at_k, LambdaRankParams, LambdaRankTrainer};
     use rank_learn::LearnError;
 
     #[test]
@@ -20,7 +20,7 @@ mod tests {
     #[test]
     fn test_ndcg_invalid_k_error() {
         let relevance = vec![3.0, 2.0, 1.0];
-        
+
         // k > length
         let result = ndcg_at_k(&relevance, Some(100), true);
         assert!(result.is_err());
@@ -69,7 +69,10 @@ mod tests {
         let result = trainer.compute_gradients(&[1.0, 2.0], &[3.0], None);
         assert!(result.is_err());
         match result {
-            Err(LearnError::LengthMismatch { scores_len, relevance_len }) => {
+            Err(LearnError::LengthMismatch {
+                scores_len,
+                relevance_len,
+            }) => {
                 assert_eq!(scores_len, 2);
                 assert_eq!(relevance_len, 1);
             }
@@ -152,7 +155,7 @@ mod tests {
         let trainer = LambdaRankTrainer::default();
         let scores = vec![0.1, 0.5, 0.9, 0.3, 0.7];
         let relevance = vec![3.0, 2.0, 1.0, 2.5, 1.5];
-        
+
         // Test with k=3 (only optimize top 3)
         let result = trainer.compute_gradients(&scores, &relevance, Some(3));
         assert!(result.is_ok());
@@ -166,7 +169,7 @@ mod tests {
         let trainer = LambdaRankTrainer::default();
         let scores = vec![0.1, 0.5, 0.9];
         let relevance = vec![3.0, 2.0, 1.0];
-        
+
         // k > length should still work (treats as k=None)
         let result = trainer.compute_gradients(&scores, &relevance, Some(100));
         assert!(result.is_ok());
@@ -174,4 +177,3 @@ mod tests {
         assert_eq!(lambdas.len(), scores.len());
     }
 }
-

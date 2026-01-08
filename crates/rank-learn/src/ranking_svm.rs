@@ -120,11 +120,7 @@ pub fn compute_ranking_svm_gradients(
             }
 
             // Determine which document should rank higher
-            let (high_idx, low_idx) = if rel_diff > 0.0 {
-                (i, j)
-            } else {
-                (j, i)
-            };
+            let (high_idx, low_idx) = if rel_diff > 0.0 { (i, j) } else { (j, i) };
 
             let score_diff = scores[high_idx] - scores[low_idx];
 
@@ -263,8 +259,10 @@ mod tests {
         let scores: Vec<f32> = (0..10).map(|i| i as f32 * 0.1).collect();
         let relevance: Vec<f32> = (0..10).rev().map(|i| i as f32).collect();
 
-        let gradients_norm = compute_ranking_svm_gradients(&scores, &relevance, params_with_norm).unwrap();
-        let gradients_no_norm = compute_ranking_svm_gradients(&scores, &relevance, params_without_norm).unwrap();
+        let gradients_norm =
+            compute_ranking_svm_gradients(&scores, &relevance, params_with_norm).unwrap();
+        let gradients_no_norm =
+            compute_ranking_svm_gradients(&scores, &relevance, params_without_norm).unwrap();
 
         // Normalized gradients should have smaller magnitude
         let norm_norm: f32 = gradients_norm.iter().map(|g| g * g).sum::<f32>().sqrt();
@@ -289,8 +287,10 @@ mod tests {
         let scores = vec![0.1, 0.2, 0.3, 0.4, 0.5];
         let relevance = vec![5.0, 4.0, 3.0, 2.0, 1.0];
 
-        let gradients_cost = compute_ranking_svm_gradients(&scores, &relevance, params_with_cost).unwrap();
-        let gradients_no_cost = compute_ranking_svm_gradients(&scores, &relevance, params_without_cost).unwrap();
+        let gradients_cost =
+            compute_ranking_svm_gradients(&scores, &relevance, params_with_cost).unwrap();
+        let gradients_no_cost =
+            compute_ranking_svm_gradients(&scores, &relevance, params_without_cost).unwrap();
 
         // With cost sensitivity, top positions should have larger gradient magnitudes
         // (absolute values)
@@ -314,4 +314,3 @@ mod tests {
         assert!(matches!(result, Err(LearnError::LengthMismatch { .. })));
     }
 }
-

@@ -9,7 +9,6 @@
 //! - Ip = set of predicted identifiers that appear in passage p
 //! - s_ip = language model score of identifier ip
 
-
 /// Heuristic scorer that converts identifiers to passage scores.
 #[derive(Debug, Clone)]
 pub struct HeuristicScorer {
@@ -85,11 +84,7 @@ impl HeuristicScorer {
     /// Case-insensitive matching adds overhead but improves recall.
     /// Unicode normalization (when enabled) adds additional overhead but improves matching
     /// across different Unicode representations (e.g., "é" vs "e\u{0301}").
-    pub fn score_passage(
-        &self,
-        passage: &str,
-        predicted_identifiers: &[(String, f32)],
-    ) -> f32 {
+    pub fn score_passage(&self, passage: &str, predicted_identifiers: &[(String, f32)]) -> f32 {
         if predicted_identifiers.is_empty() {
             return 0.0;
         }
@@ -101,13 +96,13 @@ impl HeuristicScorer {
             } else {
                 passage.to_string()
             };
-            
+
             #[cfg(feature = "unicode")]
             {
                 use unicode_normalization::UnicodeNormalization;
                 normalized = normalized.nfc().collect::<String>();
             }
-            
+
             normalized
         };
 
@@ -126,13 +121,13 @@ impl HeuristicScorer {
                 } else {
                     identifier.clone()
                 };
-                
+
                 #[cfg(feature = "unicode")]
                 {
                     use unicode_normalization::UnicodeNormalization;
                     normalized = normalized.nfc().collect::<String>();
                 }
-                
+
                 normalized
             };
 
@@ -207,7 +202,7 @@ impl HeuristicScorer {
                     } else {
                         identifier.clone()
                     };
-                    
+
                     #[cfg(feature = "unicode")]
                     {
                         use unicode_normalization::UnicodeNormalization;
@@ -233,7 +228,7 @@ impl HeuristicScorer {
                     } else {
                         passage_text.to_string()
                     };
-                    
+
                     #[cfg(feature = "unicode")]
                     {
                         use unicode_normalization::UnicodeNormalization;
@@ -244,7 +239,7 @@ impl HeuristicScorer {
                         normalized
                     }
                 };
-                
+
                 // Score using pre-normalized identifiers
                 let mut total_score = 0.0;
                 for (identifier_normalized, score) in &normalized_identifiers {
@@ -252,7 +247,7 @@ impl HeuristicScorer {
                         total_score += score;
                     }
                 }
-                
+
                 (*passage_id, total_score)
             })
             .collect();
@@ -278,13 +273,13 @@ impl HeuristicScorer {
             } else {
                 passage.to_string()
             };
-            
+
             #[cfg(feature = "unicode")]
             {
                 use unicode_normalization::UnicodeNormalization;
                 normalized = normalized.nfc().collect::<String>();
             }
-            
+
             normalized
         };
 
@@ -302,13 +297,13 @@ impl HeuristicScorer {
                 } else {
                     identifier.clone()
                 };
-                
+
                 #[cfg(feature = "unicode")]
                 {
                     use unicode_normalization::UnicodeNormalization;
                     normalized = normalized.nfc().collect::<String>();
                 }
-                
+
                 normalized
             };
 
@@ -343,10 +338,7 @@ mod tests {
     fn test_score_passage_case_insensitive() {
         let scorer = HeuristicScorer::new().with_case_insensitive(true);
         let passage = "prime rate in canada";
-        let identifiers = vec![
-            ("Prime Rate".to_string(), 5.0),
-            ("CANADA".to_string(), 3.0),
-        ];
+        let identifiers = vec![("Prime Rate".to_string(), 5.0), ("CANADA".to_string(), 3.0)];
 
         let score = scorer.score_passage(passage, &identifiers);
         assert_eq!(score, 8.0);
@@ -370,7 +362,7 @@ mod tests {
         let scorer = HeuristicScorer::new().with_min_identifier_len(6);
         let passage = "Prime Rate in Canada";
         let identifiers = vec![
-            ("Prime".to_string(), 5.0), // Too short (5 chars < 6), filtered
+            ("Prime".to_string(), 5.0),      // Too short (5 chars < 6), filtered
             ("Prime Rate".to_string(), 3.0), // Matches (10 chars >= 6)
         ];
 
@@ -394,7 +386,7 @@ mod tests {
         ];
 
         let results = scorer.score_batch(&passages, &identifiers);
-        
+
         // Should be sorted by score descending
         assert_eq!(results[0].0, 0); // "Prime Rate" + "interest rate" = 8.0
         assert_eq!(results[1].0, 1); // "machine learning" = 4.0
@@ -427,4 +419,3 @@ mod tests {
         assert_eq!(score, 0.0);
     }
 }
-

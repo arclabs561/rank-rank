@@ -4,8 +4,8 @@
 
 use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion};
 use rank_retrieve::generative::{
-    GenerativeRetriever, HeuristicScorer, IdentifierType, MockAutoregressiveModel,
-    AutoregressiveModel,
+    AutoregressiveModel, GenerativeRetriever, HeuristicScorer, IdentifierType,
+    MockAutoregressiveModel,
 };
 
 fn generate_corpus(n_docs: usize) -> Vec<(usize, String)> {
@@ -15,7 +15,8 @@ fn generate_corpus(n_docs: usize) -> Vec<(usize, String)> {
                 i,
                 format!(
                     "Document {}: This is a sample passage about topic {} with some content.",
-                    i, i % 10
+                    i,
+                    i % 10
                 ),
             )
         })
@@ -33,7 +34,10 @@ fn bench_heuristic_scoring(c: &mut Criterion) {
         let scorer = HeuristicScorer::default();
 
         group.bench_with_input(
-            BenchmarkId::new("score_passages", format!("{}docs_{}ids", n_docs, n_identifiers)),
+            BenchmarkId::new(
+                "score_passages",
+                format!("{}docs_{}ids", n_docs, n_identifiers),
+            ),
             &(corpus, identifiers),
             |b, (corpus, ids)| {
                 b.iter(|| {
@@ -90,7 +94,10 @@ fn bench_full_retrieval(c: &mut Criterion) {
         let query = "What is machine learning?";
 
         group.bench_with_input(
-            BenchmarkId::new("retrieve", format!("{}docs_beam{}_k{}", n_docs, beam_size, k)),
+            BenchmarkId::new(
+                "retrieve",
+                format!("{}docs_beam{}_k{}", n_docs, beam_size, k),
+            ),
             &(retriever, corpus, query),
             |b, (retriever, corpus, query)| {
                 b.iter(|| {
@@ -110,4 +117,3 @@ criterion_group!(
     bench_full_retrieval
 );
 criterion_main!(benches);
-

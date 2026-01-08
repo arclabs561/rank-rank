@@ -24,14 +24,14 @@ impl SparseVector {
         if indices.len() != values.len() {
             return None;
         }
-        
+
         // Verify sorted and unique
         for i in 1..indices.len() {
-            if indices[i] <= indices[i-1] {
-                return None; 
+            if indices[i] <= indices[i - 1] {
+                return None;
             }
         }
-        
+
         Some(Self { indices, values })
     }
 
@@ -45,19 +45,19 @@ impl SparseVector {
     pub fn new_unchecked(indices: Vec<u32>, values: Vec<f32>) -> Self {
         Self { indices, values }
     }
-    
+
     /// Prune the vector by removing values below a threshold (magnitude).
     pub fn prune(&self, threshold: f32) -> Self {
         let mut new_indices = Vec::with_capacity(self.indices.len());
         let mut new_values = Vec::with_capacity(self.values.len());
-        
+
         for (i, &val) in self.values.iter().enumerate() {
             if val.abs() >= threshold {
                 new_indices.push(self.indices[i]);
                 new_values.push(val);
             }
         }
-        
+
         Self {
             indices: new_indices,
             values: new_values,
@@ -71,7 +71,7 @@ pub fn dot_product(a: &SparseVector, b: &SparseVector) -> f32 {
     let mut i = 0;
     let mut j = 0;
     let mut result = 0.0;
-    
+
     while i < a.indices.len() && j < b.indices.len() {
         if a.indices[i] < b.indices[j] {
             i += 1;
@@ -84,7 +84,7 @@ pub fn dot_product(a: &SparseVector, b: &SparseVector) -> f32 {
             j += 1;
         }
     }
-    
+
     result
 }
 
@@ -96,7 +96,7 @@ mod tests {
     fn test_dot_product() {
         let v1 = SparseVector::new(vec![1, 3, 5], vec![1.0, 2.0, 3.0]).unwrap();
         let v2 = SparseVector::new(vec![1, 4, 5], vec![0.5, 2.0, 0.5]).unwrap();
-        
+
         // Match at 1 (1.0 * 0.5 = 0.5) and 5 (3.0 * 0.5 = 1.5)
         // Total = 2.0
         let dot = dot_product(&v1, &v2);
@@ -107,9 +107,8 @@ mod tests {
     fn test_prune() {
         let v = SparseVector::new(vec![1, 2, 3], vec![0.1, 0.9, -0.2]).unwrap();
         let pruned = v.prune(0.5);
-        
+
         assert_eq!(pruned.indices, vec![2]);
         assert_eq!(pruned.values, vec![0.9]);
     }
 }
-

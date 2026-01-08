@@ -54,12 +54,12 @@ pub fn batch_retrieve_bm25(
     params: Bm25Params,
 ) -> Result<Vec<Vec<(u32, f32)>>, RetrieveError> {
     let mut results = Vec::with_capacity(queries.len());
-    
+
     for query in queries {
         let result = index.retrieve(query, k, params)?;
         results.push(result);
     }
-    
+
     Ok(results)
 }
 
@@ -83,12 +83,12 @@ pub fn batch_retrieve_dense(
     k: usize,
 ) -> Result<Vec<Vec<(u32, f32)>>, RetrieveError> {
     let mut results = Vec::with_capacity(queries.len());
-    
+
     for query in queries {
         let result = retriever.retrieve(query, k)?;
         results.push(result);
     }
-    
+
     Ok(results)
 }
 
@@ -112,12 +112,12 @@ pub fn batch_retrieve_sparse(
     k: usize,
 ) -> Result<Vec<Vec<(u32, f32)>>, RetrieveError> {
     let mut results = Vec::with_capacity(queries.len());
-    
+
     for query in queries {
         let result = retriever.retrieve(query, k)?;
         results.push(result);
     }
-    
+
     Ok(results)
 }
 
@@ -132,10 +132,7 @@ mod tests {
         index.add_document(0, &["machine".to_string(), "learning".to_string()]);
         index.add_document(1, &["artificial".to_string(), "intelligence".to_string()]);
 
-        let queries = vec![
-            vec!["machine".to_string()],
-            vec!["artificial".to_string()],
-        ];
+        let queries = vec![vec!["machine".to_string()], vec!["artificial".to_string()]];
 
         let results = batch_retrieve_bm25(&index, &queries, 10, Bm25Params::default()).unwrap();
         assert_eq!(results.len(), 2);
@@ -150,10 +147,7 @@ mod tests {
         retriever.add_document(0, vec![1.0, 0.0]);
         retriever.add_document(1, vec![0.0, 1.0]);
 
-        let queries = vec![
-            vec![1.0, 0.0],
-            vec![0.0, 1.0],
-        ];
+        let queries = vec![vec![1.0, 0.0], vec![0.0, 1.0]];
 
         let results = batch_retrieve_dense(&retriever, &queries, 10).unwrap();
         assert_eq!(results.len(), 2);
@@ -177,4 +171,3 @@ mod tests {
         assert_eq!(results.len(), 2);
     }
 }
-

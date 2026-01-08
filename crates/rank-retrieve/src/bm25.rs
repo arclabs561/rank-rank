@@ -52,9 +52,9 @@
 //! - `b` = length normalization parameter (typically 0.75)
 //! - `IDF(q_i)` = inverse document frequency of term q_i
 
-use std::collections::{HashMap, HashSet};
-use crate::RetrieveError;
 use crate::retriever::{Retriever, RetrieverBuilder};
+use crate::RetrieveError;
+use std::collections::{HashMap, HashSet};
 
 /// BM25 parameters.
 #[derive(Debug, Clone, Copy)]
@@ -63,7 +63,7 @@ pub struct Bm25Params {
     /// Controls how quickly term frequency saturates.
     /// Default: 1.2
     pub k1: f32,
-    
+
     /// Length normalization parameter (b).
     /// Controls the strength of length normalization.
     /// Default: 0.75
@@ -72,10 +72,7 @@ pub struct Bm25Params {
 
 impl Default for Bm25Params {
     fn default() -> Self {
-        Self {
-            k1: 1.2,
-            b: 0.75,
-        }
+        Self { k1: 1.2, b: 0.75 }
     }
 }
 
@@ -85,16 +82,16 @@ impl Default for Bm25Params {
 pub struct InvertedIndex {
     /// Term -> (Document ID -> Term Frequency)
     postings: HashMap<String, HashMap<u32, u32>>,
-    
+
     /// Document ID -> Document Length (in terms)
     doc_lengths: HashMap<u32, u32>,
-    
+
     /// Total number of documents
     num_docs: u32,
-    
+
     /// Average document length
     avg_doc_length: f32,
-    
+
     /// Document frequency for each term (for IDF calculation)
     doc_frequencies: HashMap<String, u32>,
 }
@@ -110,7 +107,7 @@ impl InvertedIndex {
             doc_frequencies: HashMap::new(),
         }
     }
-    
+
     /// Add a document to the index.
     ///
     /// # Arguments
@@ -120,28 +117,28 @@ impl InvertedIndex {
     pub fn add_document(&mut self, doc_id: u32, terms: &[String]) {
         let doc_length = terms.len() as u32;
         self.doc_lengths.insert(doc_id, doc_length);
-        
+
         // Count term frequencies in this document
         let mut term_freqs: HashMap<String, u32> = HashMap::new();
         for term in terms {
             *term_freqs.entry(term.clone()).or_insert(0) += 1;
         }
-        
+
         // Update postings list
         for (term, freq) in term_freqs {
             self.postings
                 .entry(term.clone())
                 .or_insert_with(HashMap::new)
                 .insert(doc_id, freq);
-            
+
             // Update document frequency
             *self.doc_frequencies.entry(term).or_insert(0) += 1;
         }
-        
+
         self.num_docs += 1;
         self.update_avg_doc_length();
     }
-    
+
     /// Update average document length.
     fn update_avg_doc_length(&mut self) {
         let total_length: u32 = self.doc_lengths.values().sum();
@@ -149,7 +146,7 @@ impl InvertedIndex {
             self.avg_doc_length = total_length as f32 / self.num_docs as f32;
         }
     }
-    
+
     /// Calculate inverse document frequency (IDF) for a term.
     ///
     /// Uses the standard IDF formula: log((N - df + 0.5) / (df + 0.5))
@@ -164,7 +161,7 @@ impl InvertedIndex {
         // Add 1.0 to ensure positive IDF (standard BM25 variant)
         ((n - df + 0.5) / (df + 0.5) + 1.0).ln()
     }
-    
+
     /// Score a document against a query using BM25.
     ///
     /// # Arguments
@@ -179,33 +176,35 @@ impl InvertedIndex {
     pub fn score(&self, doc_id: u32, query_terms: &[String], params: Bm25Params) -> f32 {
         let doc_length = self.doc_lengths.get(&doc_id).copied().unwrap_or(0) as f32;
         let mut score = 0.0;
-        
+
         for term in query_terms {
             let idf = self.idf(term);
             if idf == 0.0 {
                 continue;
             }
-            
+
             // Get term frequency in document
-            let tf = self.postings
+            let tf = self
+                .postings
                 .get(term)
                 .and_then(|postings| postings.get(&doc_id))
                 .copied()
                 .unwrap_or(0) as f32;
-            
+
             if tf == 0.0 {
                 continue;
             }
-            
+
             // BM25 formula
             let numerator = tf * (params.k1 + 1.0);
-            let denominator = tf + params.k1 * (1.0 - params.b + params.b * doc_length / self.avg_doc_length);
+            let denominator =
+                tf + params.k1 * (1.0 - params.b + params.b * doc_length / self.avg_doc_length);
             score += idf * (numerator / denominator);
         }
-        
+
         score
     }
-    
+
     /// Retrieve top-k documents for a query using BM25 scoring.
     ///
     /// Scores all documents containing at least one query term and returns the top-k
@@ -253,15 +252,20 @@ impl InvertedIndex {
     /// of documents per term. For typical queries (2-5 terms) and indexes (10K-1M docs),
     /// retrieval is typically <10ms. Scoring is O(q * c) where c is number of candidate
     /// documents (documents containing at least one query term).
-    pub fn retrieve(&self, query_terms: &[String], k: usize, params: Bm25Params) -> Result<Vec<(u32, f32)>, RetrieveError> {
+    pub fn retrieve(
+        &self,
+        query_terms: &[String],
+        k: usize,
+        params: Bm25Params,
+    ) -> Result<Vec<(u32, f32)>, RetrieveError> {
         if query_terms.is_empty() {
             return Err(RetrieveError::EmptyQuery);
         }
-        
+
         if self.num_docs == 0 {
             return Err(RetrieveError::EmptyIndex);
         }
-        
+
         // Get all candidate documents (documents containing at least one query term)
         let mut candidates: HashSet<u32> = HashSet::new();
         for term in query_terms {
@@ -269,7 +273,7 @@ impl InvertedIndex {
                 candidates.extend(postings.keys());
             }
         }
-        
+
         // Score all candidates
         let mut scored: Vec<(u32, f32)> = candidates
             .into_iter()
@@ -278,10 +282,10 @@ impl InvertedIndex {
                 (doc_id, score)
             })
             .collect();
-        
+
         // Sort by score descending
         scored.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
-        
+
         // Return top-k
         Ok(scored.into_iter().take(k).collect())
     }
@@ -315,39 +319,57 @@ impl RetrieverBuilder for InvertedIndex {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_bm25_basic() {
         let mut index = InvertedIndex::new();
-        
+
         // Add documents
-        index.add_document(0, &["the".to_string(), "quick".to_string(), "brown".to_string(), "fox".to_string()]);
-        index.add_document(1, &["the".to_string(), "lazy".to_string(), "dog".to_string()]);
-        index.add_document(2, &["quick".to_string(), "brown".to_string(), "fox".to_string(), "jumps".to_string()]);
-        
+        index.add_document(
+            0,
+            &[
+                "the".to_string(),
+                "quick".to_string(),
+                "brown".to_string(),
+                "fox".to_string(),
+            ],
+        );
+        index.add_document(
+            1,
+            &["the".to_string(), "lazy".to_string(), "dog".to_string()],
+        );
+        index.add_document(
+            2,
+            &[
+                "quick".to_string(),
+                "brown".to_string(),
+                "fox".to_string(),
+                "jumps".to_string(),
+            ],
+        );
+
         // Query
         let query = vec!["quick".to_string(), "fox".to_string()];
         let results = index.retrieve(&query, 10, Bm25Params::default()).unwrap();
-        
+
         // Document 0 and 2 should have highest scores (both contain "quick" and "fox")
         assert!(results.len() >= 2);
         // Verify we got results with positive scores
         assert!(results.iter().any(|(_, score)| *score > 0.0));
     }
-    
+
     #[test]
     fn test_idf() {
         let mut index = InvertedIndex::new();
         index.add_document(0, &["common".to_string(), "term".to_string()]);
         index.add_document(1, &["common".to_string(), "word".to_string()]);
         index.add_document(2, &["rare".to_string(), "term".to_string()]);
-        
+
         // "common" appears in 2 docs, "rare" in 1 doc
         let idf_common = index.idf("common");
         let idf_rare = index.idf("rare");
-        
+
         // Rare term should have higher IDF
         assert!(idf_rare > idf_common);
     }
 }
-

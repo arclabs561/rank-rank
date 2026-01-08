@@ -67,15 +67,17 @@
 //! ```
 
 pub mod identifier;
-pub mod scorer;
-pub mod model;
 pub mod ltrgr;
+pub mod model;
+pub mod scorer;
 
 // Re-export key types for convenience
-pub use identifier::{IdentifierType, MultiviewIdentifier, IdentifierGenerator, SimpleIdentifierGenerator};
-pub use scorer::HeuristicScorer;
+pub use identifier::{
+    IdentifierGenerator, IdentifierType, MultiviewIdentifier, SimpleIdentifierGenerator,
+};
+pub use ltrgr::{LTRGRConfig, LTRGRTrainer};
 pub use model::AutoregressiveModel;
-pub use ltrgr::{LTRGRTrainer, LTRGRConfig};
+pub use scorer::HeuristicScorer;
 
 // Re-export MockAutoregressiveModel for testing (always available, not just in test mode)
 pub use model::MockAutoregressiveModel;
@@ -186,8 +188,12 @@ impl<M: AutoregressiveModel> GenerativeRetriever<M> {
 
         // Generate identifiers for all three views
         let mut all_identifiers = Vec::new();
-        
-        for identifier_type in [IdentifierType::Title, IdentifierType::Substring, IdentifierType::PseudoQuery] {
+
+        for identifier_type in [
+            IdentifierType::Title,
+            IdentifierType::Substring,
+            IdentifierType::PseudoQuery,
+        ] {
             let prefix = identifier_type.prefix();
             let identifiers = self.model.generate(
                 query,
@@ -200,7 +206,8 @@ impl<M: AutoregressiveModel> GenerativeRetriever<M> {
 
         // Deduplicate identifiers (same identifier from different views)
         // Keep the highest-scoring instance of each identifier
-        let mut deduplicated: std::collections::HashMap<String, f32> = std::collections::HashMap::new();
+        let mut deduplicated: std::collections::HashMap<String, f32> =
+            std::collections::HashMap::new();
         for (identifier, score) in all_identifiers {
             deduplicated
                 .entry(identifier)
@@ -222,54 +229,59 @@ impl<M: AutoregressiveModel> GenerativeRetriever<M> {
             // We need a wrapper for f32 since it doesn't implement Ord
             #[derive(PartialEq, PartialOrd)]
             struct ScoreWrapper(f32);
-            
+
             impl Eq for ScoreWrapper {}
-            
+
             impl Ord for ScoreWrapper {
                 fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-                    self.0.partial_cmp(&other.0).unwrap_or(std::cmp::Ordering::Equal)
+                    self.0
+                        .partial_cmp(&other.0)
+                        .unwrap_or(std::cmp::Ordering::Equal)
                 }
             }
-            
+
             use std::collections::BinaryHeap;
-            
+
             // Min-heap that keeps only top-k elements
             // We use Reverse to make it a min-heap (smallest score at top)
             // Then we'll reverse the order at the end
-            let mut heap: BinaryHeap<std::cmp::Reverse<(ScoreWrapper, u32)>> = BinaryHeap::with_capacity(k + 1);
-            
+            let mut heap: BinaryHeap<std::cmp::Reverse<(ScoreWrapper, u32)>> =
+                BinaryHeap::with_capacity(k + 1);
+
             for (doc_id, passage_text) in &self.passages {
                 let score = self.scorer.score_passage(passage_text, &all_identifiers);
-                
+
                 // Push to heap
                 heap.push(std::cmp::Reverse((ScoreWrapper(score), *doc_id)));
-                
+
                 // Keep only top-k (remove smallest if heap size > k)
                 if heap.len() > k {
                     heap.pop(); // Remove smallest
                 }
             }
-            
+
             // Extract and reverse to get descending order
             let mut result: Vec<(u32, f32)> = heap
                 .into_iter()
                 .map(|std::cmp::Reverse((ScoreWrapper(score), doc_id))| (doc_id, score))
                 .collect();
-            
+
             // Sort descending (heap gives us ascending, so reverse)
             result.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
             result
         } else {
             // For small k relative to n, full sort is more efficient
-            let mut passage_scores: Vec<(u32, f32)> = self.passages
+            let mut passage_scores: Vec<(u32, f32)> = self
+                .passages
                 .iter()
                 .map(|(doc_id, passage_text)| {
                     let score = self.scorer.score_passage(passage_text, &all_identifiers);
                     (*doc_id, score)
                 })
                 .collect();
-            
-            passage_scores.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
+
+            passage_scores
+                .sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
             passage_scores.truncate(k);
             passage_scores
         };
@@ -280,17 +292,17 @@ impl<M: AutoregressiveModel> GenerativeRetriever<M> {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::model::MockAutoregressiveModel;
+    use super::*;
 
     #[test]
     fn test_generative_retriever_basic() {
         let model = MockAutoregressiveModel::new();
         let mut retriever = GenerativeRetriever::new(model);
-        
+
         retriever.add_document(0, "Prime Rate in Canada is a guideline interest rate");
         retriever.add_document(1, "Machine learning is a subset of artificial intelligence");
-        
+
         let results = retriever.retrieve("What is prime rate?", 10).unwrap();
         assert!(!results.is_empty());
         assert_eq!(results.len(), 2);
@@ -300,7 +312,7 @@ mod tests {
     fn test_generative_retriever_empty_query() {
         let model = MockAutoregressiveModel::new();
         let retriever = GenerativeRetriever::new(model);
-        
+
         assert!(retriever.retrieve("", 10).is_err());
         assert!(retriever.retrieve("   ", 10).is_err());
     }
@@ -309,7 +321,7 @@ mod tests {
     fn test_generative_retriever_empty_index() {
         let model = MockAutoregressiveModel::new();
         let retriever = GenerativeRetriever::new(model);
-        
+
         assert!(retriever.retrieve("test query", 10).is_err());
     }
 
@@ -320,10 +332,9 @@ mod tests {
         let mut retriever = GenerativeRetriever::new(model)
             .with_beam_size(20)
             .with_scorer(scorer);
-        
+
         retriever.add_document(0, "Test passage");
         let results = retriever.retrieve("test", 10).unwrap();
         assert!(!results.is_empty());
     }
 }
-

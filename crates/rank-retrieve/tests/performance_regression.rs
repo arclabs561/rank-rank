@@ -3,7 +3,7 @@
 //! These tests ensure that optimizations and refactorings don't degrade performance.
 //! Run with: `cargo test --release --test performance_regression`
 
-use rank_retrieve::bm25::{InvertedIndex, Bm25Params};
+use rank_retrieve::bm25::{Bm25Params, InvertedIndex};
 use rank_retrieve::generative::{GenerativeRetriever, MockAutoregressiveModel};
 use std::time::Instant;
 
@@ -22,7 +22,11 @@ fn test_bm25_performance_regression() {
         index.add_document(i, &terms);
     }
 
-    let query = vec!["term10".to_string(), "term20".to_string(), "term30".to_string()];
+    let query = vec![
+        "term10".to_string(),
+        "term20".to_string(),
+        "term30".to_string(),
+    ];
     let params = Bm25Params::default();
 
     let start = Instant::now();
@@ -47,7 +51,10 @@ fn test_generative_retrieval_performance_regression() {
 
     // Add 100 documents
     for i in 0..100 {
-        retriever.add_document(i, &format!("Document {} about various topics and subjects", i));
+        retriever.add_document(
+            i,
+            &format!("Document {} about various topics and subjects", i),
+        );
     }
 
     let start = Instant::now();

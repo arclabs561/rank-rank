@@ -52,10 +52,10 @@ pub trait Backend {
     ///
     /// Returns vector of (document_id, score) pairs sorted by score descending.
     fn retrieve(&self, query: &[f32], k: usize) -> Result<Vec<(u32, f32)>, crate::RetrieveError>;
-    
+
     /// Add a document to the index.
     fn add_document(&mut self, doc_id: u32, embedding: &[f32]) -> Result<(), crate::RetrieveError>;
-    
+
     /// Build/finalize the index (required for some backends before retrieval).
     fn build(&mut self) -> Result<(), crate::RetrieveError>;
 }

@@ -33,11 +33,16 @@ fn bench_indexing(c: &mut Criterion) {
         (1000, 10000, 0.05),
         (10000, 100000, 0.01),
         (100000, 1000000, 0.005),
-    ].iter() {
+    ]
+    .iter()
+    {
         let vectors = generate_sparse_vectors(*n_docs, *vocab_size, *sparsity);
 
         group.bench_with_input(
-            BenchmarkId::new("add_documents", format!("{}docs_vocab{}_sparse{}", n_docs, vocab_size, sparsity)),
+            BenchmarkId::new(
+                "add_documents",
+                format!("{}docs_vocab{}_sparse{}", n_docs, vocab_size, sparsity),
+            ),
             &vectors,
             |b, vecs: &Vec<SparseVector>| {
                 b.iter(|| {
@@ -61,7 +66,9 @@ fn bench_retrieval(c: &mut Criterion) {
         (1000, 10000, 0.05, 10),
         (10000, 100000, 0.01, 20),
         (100000, 1000000, 0.005, 50),
-    ].iter() {
+    ]
+    .iter()
+    {
         let vectors = generate_sparse_vectors(*n_docs, *vocab_size, *sparsity);
 
         // Build retriever
@@ -84,7 +91,10 @@ fn bench_retrieval(c: &mut Criterion) {
         let query = SparseVector::new(query_indices, query_values).unwrap();
 
         group.bench_with_input(
-            BenchmarkId::new("retrieve", format!("{}docs_k{}_vocab{}", n_docs, k, vocab_size)),
+            BenchmarkId::new(
+                "retrieve",
+                format!("{}docs_k{}_vocab{}", n_docs, k, vocab_size),
+            ),
             &query,
             |b, q| {
                 b.iter(|| {
@@ -104,7 +114,9 @@ fn bench_scoring(c: &mut Criterion) {
         (1000, 10000, 0.05),
         (10000, 100000, 0.01),
         (100000, 1000000, 0.005),
-    ].iter() {
+    ]
+    .iter()
+    {
         let vectors = generate_sparse_vectors(*n_docs, *vocab_size, *sparsity);
 
         // Build retriever
@@ -127,7 +139,10 @@ fn bench_scoring(c: &mut Criterion) {
         let query = SparseVector::new(query_indices, query_values).unwrap();
 
         group.bench_with_input(
-            BenchmarkId::new("score_document", format!("{}docs_vocab{}", n_docs, vocab_size)),
+            BenchmarkId::new(
+                "score_document",
+                format!("{}docs_vocab{}", n_docs, vocab_size),
+            ),
             &query,
             |b, q| {
                 b.iter(|| {
@@ -143,11 +158,5 @@ fn bench_scoring(c: &mut Criterion) {
     group.finish();
 }
 
-criterion_group!(
-    benches,
-    bench_indexing,
-    bench_retrieval,
-    bench_scoring
-);
+criterion_group!(benches, bench_indexing, bench_retrieval, bench_scoring);
 criterion_main!(benches);
-

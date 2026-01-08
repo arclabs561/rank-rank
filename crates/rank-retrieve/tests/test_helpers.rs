@@ -42,25 +42,61 @@ impl TestCollection<String> {
     /// Create a simple test collection for machine learning queries.
     pub fn machine_learning_collection() -> Self {
         let documents = vec![
-            (0.to_string(), vec!["machine".to_string(), "learning".to_string(), "algorithms".to_string()]),
-            (1.to_string(), vec!["deep".to_string(), "learning".to_string(), "neural".to_string()]),
-            (2.to_string(), vec!["python".to_string(), "programming".to_string()]),
-            (3.to_string(), vec!["rust".to_string(), "systems".to_string()]),
+            (
+                0.to_string(),
+                vec![
+                    "machine".to_string(),
+                    "learning".to_string(),
+                    "algorithms".to_string(),
+                ],
+            ),
+            (
+                1.to_string(),
+                vec![
+                    "deep".to_string(),
+                    "learning".to_string(),
+                    "neural".to_string(),
+                ],
+            ),
+            (
+                2.to_string(),
+                vec!["python".to_string(), "programming".to_string()],
+            ),
+            (
+                3.to_string(),
+                vec!["rust".to_string(), "systems".to_string()],
+            ),
         ];
-        
+
         let queries = vec![
-            ("q1".to_string(), vec!["machine".to_string(), "learning".to_string()]),
-            ("q2".to_string(), vec!["deep".to_string(), "learning".to_string()]),
+            (
+                "q1".to_string(),
+                vec!["machine".to_string(), "learning".to_string()],
+            ),
+            (
+                "q2".to_string(),
+                vec!["deep".to_string(), "learning".to_string()],
+            ),
         ];
-        
+
         let qrels = vec![
-            ("q1".to_string(), ["0", "1"].iter().map(|s| s.to_string()).collect()),
-            ("q2".to_string(), ["1"].iter().map(|s| s.to_string()).collect()),
+            (
+                "q1".to_string(),
+                ["0", "1"].iter().map(|s| s.to_string()).collect(),
+            ),
+            (
+                "q2".to_string(),
+                ["1"].iter().map(|s| s.to_string()).collect(),
+            ),
         ];
-        
-        Self { documents, queries, qrels }
+
+        Self {
+            documents,
+            queries,
+            qrels,
+        }
     }
-    
+
     /// Create a test collection with head and tail queries.
     pub fn head_tail_collection() -> Self {
         let mut documents = Vec::new();
@@ -74,24 +110,25 @@ impl TestCollection<String> {
         }
         // Add rare term to one document (tail)
         documents.push((50.to_string(), vec!["rare_term_xyz".to_string()]));
-        
+
         let queries = vec![
             ("head".to_string(), vec!["common".to_string()]),
             ("tail".to_string(), vec!["rare_term_xyz".to_string()]),
         ];
-        
-        let head_relevant: HashSet<String> = (0..50)
-            .step_by(2)
-            .map(|i| i.to_string())
-            .collect();
+
+        let head_relevant: HashSet<String> = (0..50).step_by(2).map(|i| i.to_string()).collect();
         let tail_relevant: HashSet<String> = ["50"].iter().map(|s| s.to_string()).collect();
-        
+
         let qrels = vec![
             ("head".to_string(), head_relevant),
             ("tail".to_string(), tail_relevant),
         ];
-        
-        Self { documents, queries, qrels }
+
+        Self {
+            documents,
+            queries,
+            qrels,
+        }
     }
 }
 
@@ -106,7 +143,7 @@ where
             .find(|(id, _)| id == query_id)
             .map(|(_, terms)| terms.clone())
     }
-    
+
     /// Get relevant documents by query ID.
     pub fn get_relevant(&self, query_id: &str) -> Option<HashSet<String>> {
         self.qrels
@@ -136,29 +173,29 @@ impl MultiRetrieverFixture {
     /// Create a fixture with machine learning test collection.
     pub fn machine_learning() -> Self {
         let collection = TestCollection::machine_learning_collection();
-        
+
         let mut bm25_index = InvertedIndex::new();
         let mut dense_retriever = DenseRetriever::new();
         let mut sparse_retriever = SparseRetriever::new();
-        
+
         // Add documents to all retrievers
         for (id_str, terms) in &collection.documents {
             let id: u32 = id_str.parse().unwrap_or(0);
             bm25_index.add_document(id, terms);
-            
+
             // Create embeddings (simplified)
-            let embedding: Vec<f32> = (0..64)
-                .map(|i| (id as usize + i) as f32 / 200.0)
-                .collect();
+            let embedding: Vec<f32> = (0..64).map(|i| (id as usize + i) as f32 / 200.0).collect();
             dense_retriever.add_document(id, embedding);
-            
+
             // Create sparse vectors
             let indices: Vec<u32> = (0..terms.len().min(10)).map(|i| i as u32).collect();
-            let values: Vec<f32> = (0..terms.len().min(10)).map(|i| 1.0 / (i + 1) as f32).collect();
+            let values: Vec<f32> = (0..terms.len().min(10))
+                .map(|i| 1.0 / (i + 1) as f32)
+                .collect();
             let sparse_vec = SparseVector::new_unchecked(indices, values);
             sparse_retriever.add_document(id, sparse_vec);
         }
-        
+
         Self {
             bm25_index,
             dense_retriever,
@@ -173,10 +210,10 @@ impl MultiRetrieverFixture {
 pub enum QueryType {
     Lexical,
     Semantic,
-    Short,  // 1-2 terms
-    Long,   // 5+ terms
-    Head,   // Common terms
-    Tail,   // Rare terms
+    Short, // 1-2 terms
+    Long,  // 5+ terms
+    Head,  // Common terms
+    Tail,  // Rare terms
 }
 
 /// Query representation for testing.
@@ -200,7 +237,7 @@ impl TestQuery {
             sparse_vector: None,
         }
     }
-    
+
     /// Create a short query (1-2 terms).
     pub fn short(terms: Vec<String>) -> Self {
         Self {
@@ -211,7 +248,7 @@ impl TestQuery {
             sparse_vector: None,
         }
     }
-    
+
     /// Create a long query (5+ terms).
     pub fn long(terms: Vec<String>) -> Self {
         Self {
@@ -243,15 +280,9 @@ pub struct EvaluationResults {
 
 impl EvaluationResults {
     /// Create evaluation results from ranked list and relevant set.
-    pub fn from_ranked(
-        query_id: String,
-        ranked: &[String],
-        relevant: &HashSet<String>,
-    ) -> Self {
-        use rank_eval::binary::{
-            average_precision, mrr, ndcg_at_k, precision_at_k, recall_at_k,
-        };
-        
+    pub fn from_ranked(query_id: String, ranked: &[String], relevant: &HashSet<String>) -> Self {
+        use rank_eval::binary::{average_precision, mrr, ndcg_at_k, precision_at_k, recall_at_k};
+
         Self {
             query_id,
             precision_at_1: precision_at_k(ranked, relevant, 1),
@@ -265,7 +296,7 @@ impl EvaluationResults {
             map: average_precision(ranked, relevant),
         }
     }
-    
+
     /// Check if results meet minimum thresholds.
     pub fn meets_thresholds(&self, min_precision: f64, min_recall: f64, min_ndcg: f64) -> bool {
         self.precision_at_10 >= min_precision
@@ -333,12 +364,12 @@ impl TestScenario {
         }
         Self { index, collection }
     }
-    
+
     /// Get query terms by query ID.
     pub fn get_query(&self, query_id: &str) -> Option<Vec<String>> {
         self.collection.get_query(query_id)
     }
-    
+
     /// Get relevant documents by query ID.
     pub fn get_relevant(&self, query_id: &str) -> Option<HashSet<String>> {
         self.collection.get_relevant(query_id)
@@ -353,9 +384,7 @@ pub type FusionResult<ID> = Vec<(ID, f32)>;
 /// Helper to create test results for fusion testing.
 ///
 /// Works across rank-fusion, rank-retrieve, and other crates.
-pub fn create_test_results<ID: Display + Clone>(
-    ids_and_scores: &[(ID, f32)],
-) -> Vec<(ID, f32)> {
+pub fn create_test_results<ID: Display + Clone>(ids_and_scores: &[(ID, f32)]) -> Vec<(ID, f32)> {
     ids_and_scores.to_vec()
 }
 
@@ -413,7 +442,10 @@ pub struct TrecRunEntry {
 impl TrecRunEntry {
     /// Format as TREC run line: "query_id Q0 doc_id rank score run_tag"
     pub fn to_trec_line(&self) -> String {
-        format!("{} Q0 {} {} {:.6} {}", self.query_id, self.doc_id, self.rank, self.score, self.run_tag)
+        format!(
+            "{} Q0 {} {} {:.6} {}",
+            self.query_id, self.doc_id, self.rank, self.score, self.run_tag
+        )
     }
 }
 
@@ -470,13 +502,16 @@ pub mod proptest_helpers {
     /// Strategy for generating string-based retrieval results.
     ///
     /// Generates `Vec<(String, f32)>` with document IDs as strings.
-    pub fn arb_string_results(max_len: usize, max_id: u32) -> impl Strategy<Value = Vec<(String, f32)>> {
-        arb_results(max_len, max_id)
-            .prop_map(|results| {
-                results.into_iter()
-                    .map(|(id, score)| (id.to_string(), score))
-                    .collect()
-            })
+    pub fn arb_string_results(
+        max_len: usize,
+        max_id: u32,
+    ) -> impl Strategy<Value = Vec<(String, f32)>> {
+        arb_results(max_len, max_id).prop_map(|results| {
+            results
+                .into_iter()
+                .map(|(id, score)| (id.to_string(), score))
+                .collect()
+        })
     }
 
     /// Strategy for generating test queries.
@@ -485,7 +520,10 @@ pub mod proptest_helpers {
     }
 
     /// Strategy for generating relevance sets.
-    pub fn arb_relevant_set(max_docs: u32, max_relevant: usize) -> impl Strategy<Value = HashSet<String>> {
+    pub fn arb_relevant_set(
+        max_docs: u32,
+        max_relevant: usize,
+    ) -> impl Strategy<Value = HashSet<String>> {
         proptest::collection::hash_set(0u32..max_docs, 0..=max_relevant)
             .prop_map(|ids| ids.into_iter().map(|id| id.to_string()).collect())
     }
@@ -502,12 +540,13 @@ pub struct ResultBuilder<ID> {
 
 impl<ID> ResultBuilder<ID> {
     pub fn new() -> Self {
-        Self { results: Vec::new() }
+        Self {
+            results: Vec::new(),
+        }
     }
 }
 
 impl<ID: Clone> ResultBuilder<ID> {
-
     pub fn add(mut self, id: ID, score: f32) -> Self {
         self.results.push((id, score));
         self
@@ -520,7 +559,8 @@ impl<ID: Clone> ResultBuilder<ID> {
 
     pub fn build(mut self) -> Vec<(ID, f32)> {
         // Sort by score descending
-        self.results.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
+        self.results
+            .sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
         self.results
     }
 }
@@ -557,7 +597,11 @@ impl TestCollectionBuilder {
         self
     }
 
-    pub fn add_qrel(mut self, query_id: impl Into<String>, doc_ids: Vec<impl Into<String>>) -> Self {
+    pub fn add_qrel(
+        mut self,
+        query_id: impl Into<String>,
+        doc_ids: Vec<impl Into<String>>,
+    ) -> Self {
         let relevant: HashSet<String> = doc_ids.into_iter().map(|id| id.into()).collect();
         self.qrels.push((query_id.into(), relevant));
         self

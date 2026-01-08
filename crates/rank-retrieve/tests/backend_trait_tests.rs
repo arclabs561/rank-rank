@@ -30,10 +30,12 @@ impl Backend for TestBackend {
             return Err(RetrieveError::EmptyQuery);
         }
 
-        let mut scored: Vec<(u32, f32)> = self.documents
+        let mut scored: Vec<(u32, f32)> = self
+            .documents
             .iter()
             .map(|(doc_id, embedding)| {
-                let score = query.iter()
+                let score = query
+                    .iter()
                     .zip(embedding.iter())
                     .map(|(q, e)| q * e)
                     .sum::<f32>();
@@ -62,11 +64,11 @@ impl Backend for TestBackend {
 #[test]
 fn test_backend_trait_implementation() {
     let mut backend = TestBackend::new();
-    
+
     backend.add_document(0, &vec![1.0, 0.0]).unwrap();
     backend.add_document(1, &vec![0.0, 1.0]).unwrap();
     backend.build().unwrap();
-    
+
     let results = backend.retrieve(&vec![1.0, 0.0], 10).unwrap();
     assert_eq!(results.len(), 2);
     assert_eq!(results[0].0, 0); // Should find doc 0 first
@@ -75,15 +77,14 @@ fn test_backend_trait_implementation() {
 #[test]
 fn test_backend_trait_error_handling() {
     let backend = TestBackend::new();
-    
+
     // Should fail if not built
     let result = backend.retrieve(&vec![1.0, 0.0], 10);
     assert!(result.is_err());
-    
+
     // Should fail on empty query
     let mut backend = TestBackend::new();
     backend.build().unwrap();
     let result = backend.retrieve(&vec![], 10);
     assert!(result.is_err());
 }
-

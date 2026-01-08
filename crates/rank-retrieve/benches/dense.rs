@@ -18,12 +18,7 @@ fn generate_embeddings(n_docs: usize, dim: usize) -> Vec<Vec<f32>> {
 fn bench_indexing(c: &mut Criterion) {
     let mut group = c.benchmark_group("dense_indexing");
 
-    for (n_docs, dim) in [
-        (100, 128),
-        (1000, 256),
-        (10000, 384),
-        (100000, 768),
-    ].iter() {
+    for (n_docs, dim) in [(100, 128), (1000, 256), (10000, 384), (100000, 768)].iter() {
         let embeddings = generate_embeddings(*n_docs, *dim);
 
         group.bench_with_input(
@@ -52,7 +47,9 @@ fn bench_retrieval(c: &mut Criterion) {
         (10000, 256, 20),
         (100000, 384, 50),
         (1000000, 768, 100),
-    ].iter() {
+    ]
+    .iter()
+    {
         let embeddings = generate_embeddings(*n_docs, *dim);
 
         // Build retriever
@@ -83,11 +80,7 @@ fn bench_retrieval(c: &mut Criterion) {
 fn bench_scoring(c: &mut Criterion) {
     let mut group = c.benchmark_group("dense_scoring");
 
-    for (n_docs, dim) in [
-        (1000, 128),
-        (10000, 256),
-        (100000, 384),
-    ].iter() {
+    for (n_docs, dim) in [(1000, 128), (10000, 256), (100000, 384)].iter() {
         let embeddings = generate_embeddings(*n_docs, *dim);
 
         // Build retriever
@@ -118,11 +111,5 @@ fn bench_scoring(c: &mut Criterion) {
     group.finish();
 }
 
-criterion_group!(
-    benches,
-    bench_indexing,
-    bench_retrieval,
-    bench_scoring
-);
+criterion_group!(benches, bench_indexing, bench_retrieval, bench_scoring);
 criterion_main!(benches);
-

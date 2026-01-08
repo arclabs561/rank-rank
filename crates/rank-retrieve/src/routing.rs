@@ -64,7 +64,7 @@ impl QueryFeatures {
         let length = terms.len();
         let complexity = Self::estimate_complexity(terms);
         let query_type = Self::classify_query_type(terms, complexity);
-        
+
         Self {
             length,
             complexity,
@@ -72,28 +72,29 @@ impl QueryFeatures {
             domain: None,
         }
     }
-    
+
     /// Estimate query complexity from term diversity.
     fn estimate_complexity(terms: &[String]) -> f32 {
         if terms.is_empty() {
             return 0.0;
         }
-        
+
         // Simple heuristic: unique terms / total terms
         let unique: std::collections::HashSet<_> = terms.iter().collect();
         unique.len() as f32 / terms.len() as f32
     }
-    
+
     /// Classify query type based on terms and complexity.
     fn classify_query_type(terms: &[String], complexity: f32) -> QueryType {
         if terms.is_empty() {
             return QueryType::Unknown;
         }
-        
+
         // Simple heuristic: if complexity is high and terms are long, likely semantic
         // If terms are short and common, likely keyword
-        let avg_length: f32 = terms.iter().map(|t| t.len() as f32).sum::<f32>() / terms.len() as f32;
-        
+        let avg_length: f32 =
+            terms.iter().map(|t| t.len() as f32).sum::<f32>() / terms.len() as f32;
+
         if complexity > 0.8 && avg_length > 5.0 {
             QueryType::Semantic
         } else if complexity < 0.5 && avg_length < 4.0 {
@@ -139,7 +140,7 @@ impl QueryRouter {
             enabled: false,
         }
     }
-    
+
     /// Create a router that always uses the specified retriever.
     pub fn fixed(retriever: RetrieverId) -> Self {
         Self {
@@ -147,13 +148,13 @@ impl QueryRouter {
             enabled: false,
         }
     }
-    
+
     /// Enable routing (requires trained model - not yet implemented).
     pub fn with_routing(mut self) -> Self {
         self.enabled = true;
         self
     }
-    
+
     /// Route query to best retriever(s).
     ///
     /// Returns list of retriever IDs sorted by expected utility (best first).
@@ -174,7 +175,7 @@ impl QueryRouter {
         if !self.enabled {
             return vec![self.default_retriever];
         }
-        
+
         // Placeholder: simple heuristic-based routing
         // Full implementation would use trained XGBoost model
         match features.query_type {
@@ -184,10 +185,13 @@ impl QueryRouter {
             QueryType::Unknown => vec![RetrieverId::Bm25, RetrieverId::Dense],
         }
     }
-    
+
     /// Route query and return single best retriever.
     pub fn route_single(&self, features: &QueryFeatures) -> RetrieverId {
-        self.route(features).first().copied().unwrap_or(self.default_retriever)
+        self.route(features)
+            .first()
+            .copied()
+            .unwrap_or(self.default_retriever)
     }
 }
 
@@ -244,50 +248,52 @@ impl Default for RouterTrainingConfig {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn query_features_extraction() {
         let terms = vec!["machine".to_string(), "learning".to_string()];
         let features = QueryFeatures::from_terms(&terms);
-        
+
         assert_eq!(features.length, 2);
         assert!(features.complexity > 0.0);
     }
-    
+
     #[test]
     fn query_type_classification() {
         let keyword_terms = vec!["the".to_string(), "quick".to_string(), "brown".to_string()];
         let features = QueryFeatures::from_terms(&keyword_terms);
-        
+
         // Should classify as keyword or hybrid
-        assert!(matches!(features.query_type, QueryType::Keyword | QueryType::Hybrid | QueryType::Unknown));
+        assert!(matches!(
+            features.query_type,
+            QueryType::Keyword | QueryType::Hybrid | QueryType::Unknown
+        ));
     }
-    
+
     #[test]
     fn router_default() {
         let router = QueryRouter::new();
         let features = QueryFeatures::from_terms(&["test".to_string()]);
-        
+
         let result = router.route(&features);
         assert_eq!(result, vec![RetrieverId::Bm25]);
     }
-    
+
     #[test]
     fn router_fixed() {
         let router = QueryRouter::fixed(RetrieverId::Dense);
         let features = QueryFeatures::from_terms(&["test".to_string()]);
-        
+
         let result = router.route(&features);
         assert_eq!(result, vec![RetrieverId::Dense]);
     }
-    
+
     #[test]
     fn router_route_single() {
         let router = QueryRouter::new();
         let features = QueryFeatures::from_terms(&["test".to_string()]);
-        
+
         let result = router.route_single(&features);
         assert_eq!(result, RetrieverId::Bm25);
     }
 }
-

@@ -76,26 +76,30 @@ impl Default for LambdaRankParams {
 ///
 /// Returns `LearnError::EmptyInput` if relevance is empty.
 /// Returns `LearnError::InvalidNDCG` if k > relevance length.
-pub fn ndcg_at_k(relevance: &[f32], k: Option<usize>, exponential_gain: bool) -> Result<f32, LearnError> {
+pub fn ndcg_at_k(
+    relevance: &[f32],
+    k: Option<usize>,
+    exponential_gain: bool,
+) -> Result<f32, LearnError> {
     if relevance.is_empty() {
         return Err(LearnError::EmptyInput);
     }
-    
+
     let k = k.unwrap_or(relevance.len());
-    
+
     if k == 0 {
         return Ok(0.0);
     }
-    
+
     if k > relevance.len() {
         return Err(LearnError::InvalidNDCG {
             k,
             length: relevance.len(),
         });
     }
-    
+
     let k = k.min(relevance.len());
-    
+
     // Compute DCG
     let mut dcg = 0.0;
     for i in 0..k {
@@ -109,11 +113,11 @@ pub fn ndcg_at_k(relevance: &[f32], k: Option<usize>, exponential_gain: bool) ->
         let discount = 1.0 / ((i + 2) as f32).log2();
         dcg += gain * discount;
     }
-    
+
     // Compute IDCG (ideal DCG - sorted by relevance descending)
     let mut ideal_relevance = relevance.to_vec();
     ideal_relevance.sort_by(|a, b| b.partial_cmp(a).unwrap_or(std::cmp::Ordering::Equal));
-    
+
     let mut idcg = 0.0;
     for i in 0..k {
         let gain = if exponential_gain {
@@ -124,7 +128,7 @@ pub fn ndcg_at_k(relevance: &[f32], k: Option<usize>, exponential_gain: bool) ->
         let discount = 1.0 / ((i + 2) as f32).log2();
         idcg += gain * discount;
     }
-    
+
     if idcg == 0.0 {
         Ok(0.0)
     } else {
@@ -160,14 +164,14 @@ fn delta_ndcg(
     if pos_i >= relevance.len() || pos_j >= relevance.len() {
         return 0.0;
     }
-    
+
     let k = k.unwrap_or(relevance.len());
-    
+
     // Only compute delta if both positions are within k
     if pos_i >= k && pos_j >= k {
         return 0.0;
     }
-    
+
     // Compute gains
     let gain_i = if exponential_gain {
         (2.0_f32).powf(relevance[pos_i]) - 1.0
@@ -179,7 +183,7 @@ fn delta_ndcg(
     } else {
         relevance[pos_j]
     };
-    
+
     // Compute discounts: 1 / log2(rank + 2)
     let discount_i = if pos_i < k {
         1.0 / ((pos_i + 2) as f32).log2()
@@ -191,7 +195,7 @@ fn delta_ndcg(
     } else {
         0.0
     };
-    
+
     // Efficient delta computation for swapping:
     // When swapping item i (at pos_i) with item j (at pos_j):
     // Before: gain_i * discount_i + gain_j * discount_j
@@ -201,7 +205,7 @@ fn delta_ndcg(
     //       = -(gain_i - gain_j) * (discount_i - discount_j)
     let gain_diff = gain_i - gain_j;
     let discount_diff = discount_i - discount_j;
-    
+
     // Get IDCG (compute if not provided)
     let inv_idcg_val = if let Some(idcg) = inv_idcg {
         idcg
@@ -225,7 +229,7 @@ fn delta_ndcg(
             0.0
         }
     };
-    
+
     // Negative sign because we're computing change when swapping (moving i down, j up)
     -(gain_diff * discount_diff * inv_idcg_val)
 }
@@ -251,10 +255,10 @@ pub fn compute_lambdas(
     if scores.len() != relevance.len() {
         return vec![0.0; scores.len()];
     }
-    
+
     let n = scores.len();
     let k_trunc = k.unwrap_or(n);
-    
+
     // Precompute IDCG for efficiency (used in delta_ndcg)
     let inv_idcg = {
         let mut ideal_relevance = relevance.to_vec();
@@ -275,10 +279,10 @@ pub fn compute_lambdas(
             0.0
         }
     };
-    
+
     let mut lambdas = vec![0.0; n];
     let mut sum_lambdas = 0.0;
-    
+
     // Find min/max scores for score normalization
     let (min_score, max_score) = if params.score_normalization && n > 0 {
         let min = scores.iter().copied().fold(f32::INFINITY, f32::min);
@@ -292,7 +296,7 @@ pub fn compute_lambdas(
     } else {
         1.0
     };
-    
+
     // Count valid pairs for query normalization (μ weight)
     let mut valid_pairs = 0;
     for i in 0..n.min(k_trunc) {
@@ -302,7 +306,7 @@ pub fn compute_lambdas(
             }
         }
     }
-    
+
     // Query normalization weight: μ = 1.0 if disabled, or normalized by max pairs
     // For single query, μ = 1.0. For batch, caller should provide max_pairs.
     let mu = if params.query_normalization && valid_pairs > 0 {
@@ -310,7 +314,7 @@ pub fn compute_lambdas(
     } else {
         1.0
     };
-    
+
     // For each pair (i, j) where i < j
     // Optimization: only consider pairs where at least one document is within k_trunc
     for i in 0..n.min(k_trunc) {
@@ -320,14 +324,14 @@ pub fn compute_lambdas(
             if rel_diff.abs() < 1e-10 {
                 continue;
             }
-            
+
             // Determine which document should rank higher
             let (high_idx, low_idx, high_rank, low_rank) = if rel_diff > 0.0 {
                 (i, j, i, j)
             } else {
                 (j, i, j, i)
             };
-            
+
             // Compute ΔNDCG if documents were swapped
             let delta = delta_ndcg(
                 relevance,
@@ -337,7 +341,7 @@ pub fn compute_lambdas(
                 params.exponential_gain,
                 Some(inv_idcg),
             );
-            
+
             // Cost sensitivity weight (τ): errors at top ranks matter more
             // Use position-based weighting: higher weight for top positions
             let tau = if params.cost_sensitivity {
@@ -350,29 +354,31 @@ pub fn compute_lambdas(
             } else {
                 1.0
             };
-            
+
             // LambdaRank formula
             let score_diff = scores[high_idx] - scores[low_idx];
-            
+
             // Score normalization (LightGBM's norm): normalize delta by score distance
             let normalized_delta = if params.score_normalization {
                 delta.abs() / (0.01 + score_diff.abs() / score_range.max(0.01))
             } else {
                 delta.abs()
             };
-            
-            let lambda_ij = -params.sigma / (1.0 + (params.sigma * score_diff).exp()) 
-                * normalized_delta * tau * mu;
-            
+
+            let lambda_ij = -params.sigma / (1.0 + (params.sigma * score_diff).exp())
+                * normalized_delta
+                * tau
+                * mu;
+
             // Update lambdas
             lambdas[high_idx] += lambda_ij;
             lambdas[low_idx] -= lambda_ij;
-            
+
             // Accumulate absolute lambda values for normalization
             sum_lambdas += 2.0 * lambda_ij.abs();
         }
     }
-    
+
     // Lambda normalization (XGBoost/LightGBM style): normalize by sum of lambdas
     // This prevents queries with many pairs from dominating
     if params.query_normalization && sum_lambdas > 0.0 {
@@ -381,7 +387,7 @@ pub fn compute_lambdas(
             *lambda *= norm_factor;
         }
     }
-    
+
     lambdas
 }
 
@@ -397,7 +403,7 @@ impl LambdaRankTrainer {
     pub fn new(params: LambdaRankParams) -> Self {
         Self { params }
     }
-    
+
     /// Compute gradients for a query-document list.
     ///
     /// # Arguments
@@ -423,17 +429,17 @@ impl LambdaRankTrainer {
         if scores.is_empty() || relevance.is_empty() {
             return Err(LearnError::EmptyInput);
         }
-        
+
         if scores.len() != relevance.len() {
             return Err(LearnError::LengthMismatch {
                 scores_len: scores.len(),
                 relevance_len: relevance.len(),
             });
         }
-        
+
         Ok(compute_lambdas(scores, relevance, self.params, k))
     }
-    
+
     /// Compute gradients for a batch of queries with proper query normalization.
     ///
     /// This method implements query normalization (μ weights) from Cao et al. 2006,
@@ -464,11 +470,11 @@ impl LambdaRankTrainer {
                 relevance_len: batch_relevance.len(),
             });
         }
-        
+
         if batch_scores.is_empty() {
             return Err(LearnError::EmptyInput);
         }
-        
+
         // Count pairs per query for normalization
         let mut pairs_per_query: Vec<usize> = Vec::with_capacity(batch_scores.len());
         for (scores, relevance) in batch_scores.iter().zip(batch_relevance.iter()) {
@@ -478,7 +484,7 @@ impl LambdaRankTrainer {
                     relevance_len: relevance.len(),
                 });
             }
-            
+
             let mut pairs = 0;
             for i in 0..scores.len() {
                 for j in (i + 1)..scores.len() {
@@ -489,15 +495,17 @@ impl LambdaRankTrainer {
             }
             pairs_per_query.push(pairs);
         }
-        
+
         // Find maximum pairs for normalization (μ weight)
         let max_pairs = pairs_per_query.iter().max().copied().unwrap_or(1);
-        
+
         // Compute lambdas for each query with normalization
         let mut batch_lambdas = Vec::with_capacity(batch_scores.len());
-        for (idx, (scores, relevance)) in batch_scores.iter().zip(batch_relevance.iter()).enumerate() {
+        for (idx, (scores, relevance)) in
+            batch_scores.iter().zip(batch_relevance.iter()).enumerate()
+        {
             let mut lambdas = compute_lambdas(scores, relevance, self.params, k);
-            
+
             // Apply query normalization: μ = pairs_in_query / max_pairs
             if self.params.query_normalization && max_pairs > 0 {
                 let mu = pairs_per_query[idx] as f32 / max_pairs as f32;
@@ -505,10 +513,10 @@ impl LambdaRankTrainer {
                     *lambda *= mu;
                 }
             }
-            
+
             batch_lambdas.push(lambdas);
         }
-        
+
         Ok(batch_lambdas)
     }
 }
@@ -522,7 +530,7 @@ impl Default for LambdaRankTrainer {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_ndcg() {
         // Perfect ranking: relevance = [3.0, 2.0, 1.0]
@@ -530,7 +538,7 @@ mod tests {
         let ndcg = ndcg_at_k(&relevance, None, true).unwrap();
         assert!((ndcg - 1.0).abs() < 0.01); // Should be 1.0 for perfect ranking
     }
-    
+
     #[test]
     fn test_ndcg_exponential_gain() {
         // Test exponential gain: 2^rel - 1
@@ -538,19 +546,19 @@ mod tests {
         let relevance = vec![1.0, 2.0, 0.0]; // Not in perfect order
         let ndcg_exp = ndcg_at_k(&relevance, None, true).unwrap();
         let ndcg_linear = ndcg_at_k(&relevance, None, false).unwrap();
-        
+
         // Exponential gain should be different from linear
         // With exponential: 2^2-1=3, 2^1-1=1, 2^0-1=0
         // With linear: 2, 1, 0
         // Exponential amplifies differences, so NDCG should differ
         assert_ne!(ndcg_exp, ndcg_linear);
-        
+
         // Exponential gain typically gives higher DCG for high-relevance items
         // But NDCG is normalized, so the relationship depends on the ranking
         // Just verify they're different
         assert!((ndcg_exp - ndcg_linear).abs() > 0.001);
     }
-    
+
     #[test]
     fn test_delta_ndcg() {
         // Test delta computation
@@ -559,12 +567,12 @@ mod tests {
         // Swapping position 0 (rel=3) with position 1 (rel=1) should decrease NDCG
         assert!(delta < 0.0);
     }
-    
+
     #[test]
     fn test_lambda_rank_with_optimizations() {
         let scores = vec![0.5, 0.8, 0.3];
         let relevance = vec![3.0, 1.0, 2.0];
-        
+
         // Test with all optimizations enabled
         let params = LambdaRankParams {
             sigma: 1.0,
@@ -574,12 +582,14 @@ mod tests {
             exponential_gain: true,
         };
         let trainer = LambdaRankTrainer::new(params);
-        let lambdas = trainer.compute_gradients(&scores, &relevance, Some(10)).unwrap();
-        
+        let lambdas = trainer
+            .compute_gradients(&scores, &relevance, Some(10))
+            .unwrap();
+
         assert_eq!(lambdas.len(), 3);
         assert!(lambdas.iter().any(|&l| l != 0.0));
     }
-    
+
     #[test]
     fn test_lambda_rank() {
         // Documents with scores and relevance
@@ -588,10 +598,12 @@ mod tests {
         // Doc 2: score=0.3, rel=2.0 (should rank middle)
         let scores = vec![0.5, 0.8, 0.3]; // Model scores
         let relevance = vec![3.0, 1.0, 2.0]; // Ground truth (doc 0 should rank highest)
-        
+
         let trainer = LambdaRankTrainer::default();
-        let lambdas = trainer.compute_gradients(&scores, &relevance, None).unwrap();
-        
+        let lambdas = trainer
+            .compute_gradients(&scores, &relevance, None)
+            .unwrap();
+
         // Document 0 should have positive lambda (should rank higher)
         // Document 1 should have negative lambda (should rank lower)
         assert_eq!(lambdas.len(), 3);
@@ -601,4 +613,3 @@ mod tests {
         assert!(lambdas.iter().any(|&l| l != 0.0)); // At least one non-zero lambda
     }
 }
-

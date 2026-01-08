@@ -10,8 +10,18 @@ fn generate_queries(n: usize) -> Vec<Vec<String>> {
         .map(|i| {
             match i % 3 {
                 0 => vec!["the".to_string(), "quick".to_string(), "brown".to_string()], // Keyword
-                1 => vec!["machine".to_string(), "learning".to_string(), "artificial".to_string(), "intelligence".to_string()], // Semantic
-                _ => vec!["what".to_string(), "is".to_string(), "prime".to_string(), "rate".to_string()], // Hybrid
+                1 => vec![
+                    "machine".to_string(),
+                    "learning".to_string(),
+                    "artificial".to_string(),
+                    "intelligence".to_string(),
+                ], // Semantic
+                _ => vec![
+                    "what".to_string(),
+                    "is".to_string(),
+                    "prime".to_string(),
+                    "rate".to_string(),
+                ], // Hybrid
             }
         })
         .collect()
@@ -103,4 +113,3 @@ criterion_group!(
     bench_routing_overhead
 );
 criterion_main!(benches);
-

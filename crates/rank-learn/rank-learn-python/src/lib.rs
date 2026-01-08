@@ -2,8 +2,8 @@
 //!
 //! Exposes LambdaRank, NDCG, and Neural LTR functionality to Python.
 
+use ::rank_learn::lambdarank::{ndcg_at_k, LambdaRankParams, LambdaRankTrainer};
 use pyo3::prelude::*;
-use ::rank_learn::lambdarank::{LambdaRankTrainer, LambdaRankParams, ndcg_at_k};
 
 /// LambdaRank parameters for Python.
 #[pyclass]
@@ -23,7 +23,7 @@ impl LambdaRankParamsPy {
     fn new(sigma: f32) -> Self {
         Self { sigma }
     }
-    
+
     fn __repr__(&self) -> String {
         format!("LambdaRankParams(sigma={})", self.sigma)
     }
@@ -55,7 +55,7 @@ impl LambdaRankTrainerPy {
             inner: LambdaRankTrainer::new(rust_params),
         }
     }
-    
+
     /// Compute LambdaRank gradients for a query-document list.
     ///
     /// # Arguments
@@ -81,7 +81,7 @@ impl LambdaRankTrainerPy {
             .compute_gradients(&scores, &relevance, k)
             .map_err(|e| PyErr::new::<pyo3::exceptions::PyValueError, _>(e.to_string()))
     }
-    
+
     fn __repr__(&self) -> String {
         format!("LambdaRankTrainer()")
     }
@@ -114,9 +114,8 @@ fn rank_learn(_py: Python, m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<LambdaRankParamsPy>()?;
     m.add_class::<LambdaRankTrainerPy>()?;
     m.add_function(wrap_pyfunction!(ndcg_at_k_py, m)?)?;
-    
+
     m.add("__version__", env!("CARGO_PKG_VERSION"))?;
-    
+
     Ok(())
 }
-

@@ -4,7 +4,7 @@
 //! when accessed through Python bindings.
 
 use proptest::prelude::*;
-use rank_learn::lambdarank::{LambdaRankTrainer, ndcg_at_k};
+use rank_learn::lambdarank::{ndcg_at_k, LambdaRankTrainer};
 
 proptest! {
     #[test]
@@ -26,7 +26,7 @@ proptest! {
         if scores.len() == relevance.len() && !scores.is_empty() {
             let trainer = LambdaRankTrainer::default();
             let lambdas = trainer.compute_gradients(&scores, &relevance, None).unwrap();
-            
+
             prop_assert_eq!(
                 lambdas.len(),
                 scores.len(),
@@ -43,7 +43,7 @@ proptest! {
         if scores.len() == relevance.len() && !scores.is_empty() {
             let trainer = LambdaRankTrainer::default();
             let lambdas = trainer.compute_gradients(&scores, &relevance, None).unwrap();
-            
+
             for lambda in lambdas {
                 prop_assert!(
                     lambda.is_finite(),
@@ -76,7 +76,7 @@ proptest! {
         if scores.len() == relevance.len() && !scores.is_empty() && k <= scores.len() {
             let trainer = LambdaRankTrainer::default();
             let lambdas = trainer.compute_gradients(&scores, &relevance, Some(k)).unwrap();
-            
+
             prop_assert_eq!(
                 lambdas.len(),
                 scores.len(),
@@ -85,4 +85,3 @@ proptest! {
         }
     }
 }
-

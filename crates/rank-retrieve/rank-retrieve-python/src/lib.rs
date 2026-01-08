@@ -35,7 +35,7 @@ use ::rank_retrieve::{
     bm25::{Bm25Params, InvertedIndex},
     dense::DenseRetriever,
     sparse::SparseRetriever,
-    sparse::{SparseVector as RustSparseVector, dot_product},
+    sparse::{dot_product, SparseVector as RustSparseVector},
 };
 use pyo3::prelude::*;
 use pyo3::types::PyList;
@@ -105,9 +105,7 @@ impl InvertedIndexPy {
         params: Option<PyRef<'_, Bm25ParamsPy>>,
     ) -> PyResult<Vec<(u32, f32)>> {
         let query_vec: Vec<String> = query_terms.extract()?;
-        let bm25_params = params
-            .map(|p| p.inner)
-            .unwrap_or_else(Bm25Params::default);
+        let bm25_params = params.map(|p| p.inner).unwrap_or_else(Bm25Params::default);
 
         self.inner
             .retrieve(&query_vec, k, bm25_params)
@@ -200,11 +198,7 @@ impl DenseRetrieverPy {
     ///
     /// # Returns
     /// List of (doc_id, score) tuples sorted by score descending
-    fn retrieve(
-        &self,
-        query_embedding: &Bound<'_, PyList>,
-        k: usize,
-    ) -> PyResult<Vec<(u32, f32)>> {
+    fn retrieve(&self, query_embedding: &Bound<'_, PyList>, k: usize) -> PyResult<Vec<(u32, f32)>> {
         let query_vec: Vec<f32> = query_embedding.extract()?;
         self.inner
             .retrieve(&query_vec, k)
@@ -219,11 +213,7 @@ impl DenseRetrieverPy {
     ///
     /// # Returns
     /// Cosine similarity score, or None if document not found
-    fn score(
-        &self,
-        doc_id: u32,
-        query_embedding: &Bound<'_, PyList>,
-    ) -> PyResult<Option<f32>> {
+    fn score(&self, doc_id: u32, query_embedding: &Bound<'_, PyList>) -> PyResult<Option<f32>> {
         let query_vec: Vec<f32> = query_embedding.extract()?;
         Ok(self.inner.score(doc_id, &query_vec))
     }
@@ -240,11 +230,7 @@ pub struct SparseVectorPy {
 impl SparseVectorPy {
     #[new]
     #[pyo3(signature = (indices, values, *, validate = true))]
-    fn new(
-        indices: Vec<u32>,
-        values: Vec<f32>,
-        validate: bool,
-    ) -> PyResult<Self> {
+    fn new(indices: Vec<u32>, values: Vec<f32>, validate: bool) -> PyResult<Self> {
         let vector = if validate {
             RustSparseVector::new(indices, values)
                 .ok_or_else(|| {
@@ -327,20 +313,13 @@ impl SparseRetrieverPy {
     ///
     /// # Returns
     /// Dot product score, or None if document not found
-    fn score(
-        &self,
-        doc_id: u32,
-        query_vector: PyRef<'_, SparseVectorPy>,
-    ) -> PyResult<Option<f32>> {
+    fn score(&self, doc_id: u32, query_vector: PyRef<'_, SparseVectorPy>) -> PyResult<Option<f32>> {
         Ok(self.inner.score(doc_id, &query_vector.inner))
     }
 }
 
 /// Compute dot product between two sparse vectors.
 #[pyfunction]
-fn sparse_dot_product_py(
-    a: PyRef<'_, SparseVectorPy>,
-    b: PyRef<'_, SparseVectorPy>,
-) -> f32 {
+fn sparse_dot_product_py(a: PyRef<'_, SparseVectorPy>, b: PyRef<'_, SparseVectorPy>) -> f32 {
     dot_product(&a.inner, &b.inner)
 }

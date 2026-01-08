@@ -8,7 +8,6 @@
 //! - **Substring**: Random substring from passage body
 //! - **Pseudo-query**: Query-like representation of the passage
 
-
 /// Type of identifier for multiview representation.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum IdentifierType {
@@ -198,12 +197,8 @@ impl SimpleIdentifierGenerator {
         // Get top 3-5 most frequent words
         let mut sorted_words: Vec<(&str, usize)> = freq.into_iter().collect();
         sorted_words.sort_by(|a, b| b.1.cmp(&a.1));
-        
-        let top_words: Vec<&str> = sorted_words
-            .iter()
-            .take(5)
-            .map(|(word, _)| *word)
-            .collect();
+
+        let top_words: Vec<&str> = sorted_words.iter().take(5).map(|(word, _)| *word).collect();
 
         // Format as query
         if top_words.is_empty() {
@@ -288,4 +283,3 @@ mod tests {
         assert!(pseudo_query.len() > 10);
     }
 }
-

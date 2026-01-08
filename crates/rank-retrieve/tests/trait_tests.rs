@@ -24,8 +24,12 @@ fn test_bm25_trait_interface() {
     use rank_retrieve::retriever::RetrieverBuilder;
 
     let mut index = InvertedIndex::new();
-    index.add_document(0, vec!["test".to_string(), "document".to_string()]).unwrap();
-    index.add_document(1, vec!["another".to_string(), "test".to_string()]).unwrap();
+    index
+        .add_document(0, vec!["test".to_string(), "document".to_string()])
+        .unwrap();
+    index
+        .add_document(1, vec!["another".to_string(), "test".to_string()])
+        .unwrap();
 
     let query = vec!["test".to_string()];
     let results = search(&index, &query, 10).unwrap();
@@ -54,8 +58,8 @@ fn test_dense_trait_interface() {
 #[cfg(feature = "sparse")]
 #[test]
 fn test_sparse_trait_interface() {
-    use rank_retrieve::sparse::{SparseRetriever, SparseVector};
     use rank_retrieve::retriever::RetrieverBuilder;
+    use rank_retrieve::sparse::{SparseRetriever, SparseVector};
 
     let mut retriever = SparseRetriever::new();
     let doc0 = SparseVector::new_unchecked(vec![0, 1], vec![1.0, 0.5]);
@@ -77,7 +81,8 @@ fn test_polymorphic_hybrid_search() {
 
     // Setup BM25 retriever
     let mut bm25 = InvertedIndex::new();
-    bm25.add_document(0, vec!["machine".to_string(), "learning".to_string()]).unwrap();
+    bm25.add_document(0, vec!["machine".to_string(), "learning".to_string()])
+        .unwrap();
 
     // Setup dense retriever
     let mut dense = DenseRetriever::new();
@@ -99,10 +104,10 @@ fn test_trait_available_without_implementations() {
     // This test verifies that the trait is available even when no implementation
     // features are enabled. This is important for users who want to implement
     // their own retrievers or integrate with external backends.
-    
+
     // The trait should be importable
     use rank_retrieve::retriever::Retriever;
-    
+
     // We can define functions that use the trait
     fn _generic_search<R: Retriever>(
         _retriever: &R,
@@ -112,8 +117,7 @@ fn test_trait_available_without_implementations() {
         // This would work with any retriever implementation
         Ok(vec![])
     }
-    
+
     // Test passes if trait is available
     assert!(true);
 }
-

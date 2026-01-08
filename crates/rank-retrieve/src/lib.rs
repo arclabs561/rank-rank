@@ -74,7 +74,7 @@
 //!
 //! let mut index = InvertedIndex::new();
 //! index.add_document(0, &["the".to_string(), "quick".to_string()]);
-//! 
+//!
 //! let query = vec!["quick".to_string()];
 //! let results = index.retrieve(&query, 10, Bm25Params::default());
 //! ```
@@ -145,7 +145,9 @@ pub mod error;
 /// **Note:** The primary API uses concrete functions (`retrieve_bm25()`, `retrieve_dense()`, etc.)
 /// for simplicity and consistency with the `rank-*` ecosystem. This trait is available for
 /// custom implementations or advanced use cases.
-#[deprecated(note = "Use concrete functions instead: retrieve_bm25(), retrieve_dense(), retrieve_sparse(). The trait is kept for backward compatibility and custom implementations.")]
+#[deprecated(
+    note = "Use concrete functions instead: retrieve_bm25(), retrieve_dense(), retrieve_sparse(). The trait is kept for backward compatibility and custom implementations."
+)]
 pub mod retriever;
 
 /// Trait interface for external backend integrations.
@@ -241,7 +243,7 @@ pub fn retrieve_sparse(
 pub mod prelude {
     // Core types (always available)
     pub use crate::RetrieveError;
-    
+
     // Concrete retrieval functions (primary API)
     #[cfg(feature = "bm25")]
     pub use crate::retrieve_bm25;
@@ -249,29 +251,29 @@ pub mod prelude {
     pub use crate::retrieve_dense;
     #[cfg(feature = "sparse")]
     pub use crate::retrieve_sparse;
-    
+
     // Feature-gated implementations
     #[cfg(feature = "bm25")]
     pub use crate::bm25::{Bm25Params, InvertedIndex};
     #[cfg(feature = "dense")]
     pub use crate::dense::DenseRetriever;
+    #[cfg(feature = "generative")]
+    pub use crate::generative::{
+        AutoregressiveModel, GenerativeRetriever, HeuristicScorer, IdentifierGenerator,
+        IdentifierType, LTRGRConfig, LTRGRTrainer, MultiviewIdentifier, SimpleIdentifierGenerator,
+    };
     #[cfg(feature = "sparse")]
     pub use crate::sparse::SparseRetriever;
     #[cfg(feature = "sparse")]
-    pub use crate::sparse::{SparseVector, dot_product};
-    #[cfg(feature = "generative")]
-    pub use crate::generative::{
-        GenerativeRetriever, IdentifierType, MultiviewIdentifier,
-        IdentifierGenerator, SimpleIdentifierGenerator,
-        HeuristicScorer, AutoregressiveModel,
-        LTRGRTrainer, LTRGRConfig,
-    };
-    
+    pub use crate::sparse::{dot_product, SparseVector};
+
     // Always available
-    pub use crate::routing::{QueryRouter, QueryFeatures, RetrieverId, QueryType};
-    
+    pub use crate::routing::{QueryFeatures, QueryRouter, QueryType, RetrieverId};
+
     // Deprecated: Trait interface (kept for backward compatibility)
-    #[deprecated(note = "Use concrete functions instead: retrieve_bm25(), retrieve_dense(), retrieve_sparse()")]
+    #[deprecated(
+        note = "Use concrete functions instead: retrieve_bm25(), retrieve_dense(), retrieve_sparse()"
+    )]
     pub use crate::retriever::{Retriever, RetrieverBuilder};
 }
 
@@ -283,13 +285,13 @@ mod tests {
     #[test]
     fn test_bm25_retrieval() {
         use crate::bm25::*;
-        
+
         let mut index = InvertedIndex::new();
         index.add_document(0, &["test".to_string(), "document".to_string()]);
-        
+
         let query = vec!["test".to_string()];
         let results = index.retrieve(&query, 10, Bm25Params::default()).unwrap();
-        
+
         assert!(!results.is_empty());
         assert_eq!(results[0].0, 0);
     }
@@ -299,13 +301,13 @@ mod tests {
     fn test_bm25_trait_interface() {
         use crate::bm25::*;
         use crate::retriever::Retriever;
-        
+
         let mut index = InvertedIndex::new();
         index.add_document(0, &["test".to_string(), "document".to_string()]);
-        
+
         let query = vec!["test".to_string()];
         let results = Retriever::retrieve(&index, &query, 10).unwrap();
-        
+
         assert!(!results.is_empty());
         assert_eq!(results[0].0, 0);
     }
