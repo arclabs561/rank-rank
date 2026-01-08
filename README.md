@@ -4,6 +4,8 @@ Ranking and retrieval crates in Rust.
 
 [![CI](https://github.com/arclabs561/rank-rank/actions/workflows/ci.yml/badge.svg)](https://github.com/arclabs561/rank-rank/actions)
 
+Rust ecosystem lacks unified APIs for IR pipelines. Python frameworks provide unified retrieval, but Rust developers must manually compose multiple crates. These crates fill that gap: unified APIs, seamless integration, zero dependencies by default.
+
 ## Crates
 
 ### Pipeline Stages
