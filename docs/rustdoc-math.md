@@ -19,9 +19,9 @@ pub fn dot_product(a: &[f64], b: &[f64]) -> f64 {
 
 ### Syntax
 
-- **Inline math**: `$...$` or `\(...\)`
-- **Display math**: `$$...$$` or `\[...\]`
-- **Escaping**: Use `\$` for literal dollar signs
+- Inline math: `$...$` or `\(...\)`
+- Display math: `$$...$$` or `\[...\]`
+- Escaping: Use `\$` for literal dollar signs
 
 ## Building Documentation
 

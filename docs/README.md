@@ -8,6 +8,7 @@
 - `PYO3_OPTIMIZATION_GUIDE.md` - PyO3 performance optimization guide
 - `PERFORMANCE_BASELINES.md` - Performance baselines reference
 - `PERFORMANCE_REGRESSION_TESTING.md` - Performance regression testing guide
+- `rustdoc-math.md` - Math rendering in rustdoc documentation
 
 ## Structure
 
