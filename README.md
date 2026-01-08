@@ -1,49 +1,34 @@
 # rank-rank
 
-Monorepo for all rank-* crates with shared tooling and coordination.
+Monorepo for ranking and retrieval crates in Rust.
 
 ## Crates
 
-- `rank-retrieve` - First-stage retrieval (BM25, dense ANN, sparse)
-- `rank-fusion` - Rank fusion algorithms
-- `rank-rerank` - Reranking and late interaction scoring (MaxSim, cross-encoder)
-- `rank-soft` - Soft ranking and differentiable sorting
-- `rank-learn` - Learning to Rank frameworks (LambdaRank, XGBoost)
-- `rank-eval` - Ranking evaluation metrics
+- **`rank-retrieve`** - First-stage retrieval: BM25, dense ANN, sparse vectors
+- **`rank-fusion`** - Rank fusion: RRF, ISR, CombMNZ for hybrid search
+- **`rank-rerank`** - SIMD-accelerated reranking: MaxSim (ColBERT), cosine, diversity
+- **`rank-soft`** - Differentiable ranking operations for ML training
+- **`rank-learn`** - Learning to Rank: LambdaRank, LambdaMART, Ranking SVM
+- **`rank-eval`** - IR evaluation metrics: NDCG, MAP, MRR, TREC format
 
-## Structure
-
-```
-rank-rank/
-├── crates/          # All rank-* crates (flat structure)
-├── scripts/         # Shared scripts
-├── docs/            # Active documentation
-└── archive/         # Historical documentation
-```
-
-## Usage
+## Quick Start
 
 ```bash
-# Introspect all repos
-./scripts/introspect_all_rank_repos.sh
+# Add a crate
+cargo add rank-retrieve
 
-# Sync Cursor rules
-./scripts/sync_cursor_rules.sh
+# Or use multiple crates in a pipeline
+cargo add rank-retrieve rank-fusion rank-rerank rank-eval
 ```
 
 ## Documentation
 
 - `SETUP.md` - Setup instructions
 - `USAGE.md` - Usage guide
-- `CURSOR_CONFIG.md` - Cursor IDE configuration
-- `SECURITY_AUDIT.md` - Security information
+- `docs/` - Integration guides, performance, theory
 
-Additional documentation:
-- `docs/` - User guides (integration, performance, feature flags)
-- `docs/theory/` - Mathematical theory
-- `docs/typst/` - Typst documentation guide
-- `archive/` - Historical documentation
+Each crate has its own README and documentation. See `crates/*/README.md`.
 
 ## License
 
-MIT OR Apache-2.0 (same as rank-* repositories)
+MIT OR Apache-2.0
