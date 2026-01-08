@@ -10,7 +10,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 RANK_RANK_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 DEV_DIR="$(cd "$RANK_RANK_DIR/.." && pwd)"
 
-REPOS=("rank-fusion" "rank-refine" "rank-relax" "rank-eval")
+REPOS=("rank-fusion" "rank-rerank" "rank-soft" "rank-eval")
 
 echo "📝 Updating Typst documentation from markdown sources..."
 

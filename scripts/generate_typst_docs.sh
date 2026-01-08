@@ -19,7 +19,7 @@ if ! command -v typst &> /dev/null; then
 fi
 
 # Repositories to process
-REPOS=("rank-fusion" "rank-refine" "rank-relax" "rank-eval")
+REPOS=("rank-fusion" "rank-rerank" "rank-soft" "rank-eval")
 
 # If repo name provided, only process that one
 if [ $# -gt 0 ]; then

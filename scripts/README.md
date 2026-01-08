@@ -39,8 +39,8 @@ Batch inspect all README files across rank-* repositories.
 
 **Inspects:**
 - rank-fusion/rank-fusion/README.md
-- rank-refine/rank-refine/README.md
-- rank-relax/README.md
+- rank-rerank/README.md
+- rank-soft/README.md
 - rank-eval/README.md
 
 ### verify_readme_viz.py

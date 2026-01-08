@@ -1,7 +1,7 @@
 [workspace]
-members = ["rank-retrieve", "rank-retrieve-python"]
+members = ["rank-retrieve-python"]
 resolver = "2"
-default-members = ["rank-retrieve"]
+default-members = ["."]
 
 [workspace.package]
 version = "0.1.0"
@@ -11,6 +11,111 @@ license = "MIT OR Apache-2.0"
 authors = ["Arc <attobop@gmail.com>"]
 
 [workspace.dependencies]
-rank-sparse = { path = "../rank-sparse/rank-sparse" }
 proptest = "1"
+criterion = "0.5"
+serde = { version = "1.0", features = ["derive"] }
+
+[package]
+name = "rank-retrieve"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+description = "First-stage retrieval for information retrieval pipelines"
+repository = "https://github.com/arclabs561/rank-rank/tree/main/crates/rank-retrieve"
+documentation = "https://docs.rs/rank-retrieve"
+keywords = ["search", "retrieval", "bm25", "ann", "information-retrieval"]
+categories = ["algorithms", "science"]
+
+[lib]
+name = "rank_retrieve"
+path = "src/lib.rs"
+
+[dependencies]
+# Serde for sparse vector serialization (optional)
+serde = { workspace = true, optional = true }
+
+# Random sampling for LTRGR negative sampling
+rand = { version = "0.8", optional = true }
+
+# Unicode normalization for better identifier matching (optional)
+unicode-normalization = { version = "0.1", optional = true }
+
+# Qdrant client (for real-world integration example)
+qdrant-client = { version = "1.7", optional = true }
+futures = { version = "0.3", optional = true }
+
+# No backend dependencies - users implement the Backend trait for their chosen backend
+
+[features]
+default = []
+# Core retrieval implementations (opt-in for minimal builds)
+bm25 = []  # BM25 retrieval with inverted index
+dense = []  # Dense retrieval with cosine similarity
+sparse = []  # Sparse retrieval with dot product
+generative = ["dep:rand"]  # Generative retrieval (LTRGR) - requires rand for training
+# Random sampling for LTRGR training (included in generative)
+ltrgr = ["dep:rand"]
+# Unicode normalization for identifier matching
+unicode = ["dep:unicode-normalization"]
+# Qdrant integration example (optional dependency)
+qdrant = ["dep:qdrant-client", "dep:futures"]
+# Convenience feature for all implementations
+all = ["bm25", "dense", "sparse", "generative"]
+
+[[example]]
+name = "basic_retrieval"
+path = "examples/basic_retrieval.rs"
+
+[[example]]
+name = "hybrid_retrieval"
+path = "examples/hybrid_retrieval.rs"
+
+[[example]]
+name = "full_pipeline"
+path = "examples/full_pipeline.rs"
+
+[[example]]
+name = "error_handling"
+path = "examples/error_handling.rs"
+
+[[example]]
+name = "qdrant_real_integration"
+path = "examples/qdrant_real_integration.rs"
+
+[[example]]
+name = "late_interaction_pipeline"
+path = "examples/late_interaction_pipeline.rs"
+
+[dev-dependencies]
+proptest = { workspace = true }
+criterion = { workspace = true }
+# For real E2E integration tests and examples (available in monorepo)
+rank-fusion = { path = "../rank-fusion" }
+rank-eval = { path = "../rank-eval" }
+rank-rerank = { path = "../rank-rerank" }
+
+[[bench]]
+name = "bm25"
+harness = false
+
+[[bench]]
+name = "dense"
+harness = false
+
+[[bench]]
+name = "sparse"
+harness = false
+
+[[bench]]
+name = "generative"
+harness = false
+
+[[bench]]
+name = "routing"
+harness = false
+
+[package.metadata.docs.rs]
+rustdoc-args = ["--html-in-header", "../../rustdoc-header.html"]
 

@@ -4,46 +4,13 @@ build-backend = "maturin"
 
 [project]
 name = "rank-learn"
-version = "0.1.0"
-description = "Python bindings for rank-learn — Learning to Rank frameworks"
-readme = "README.md"
 requires-python = ">=3.7"
-license = { text = "MIT OR Apache-2.0" }
-authors = [{ name = "Arc", email = "attobop@gmail.com" }]
-keywords = ["learning-to-rank", "ltr", "lambdarank", "xgboost", "ranking", "machine-learning"]
 classifiers = [
     "Programming Language :: Rust",
     "Programming Language :: Python :: Implementation :: CPython",
     "Programming Language :: Python :: Implementation :: PyPy",
-    "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.7",
-    "Programming Language :: Python :: 3.8",
-    "Programming Language :: Python :: 3.9",
-    "Programming Language :: Python :: 3.10",
-    "Programming Language :: Python :: 3.11",
-    "Programming Language :: Python :: 3.12",
-    "Topic :: Scientific/Engineering :: Artificial Intelligence",
-    "Topic :: Scientific/Engineering :: Information Analysis",
-    "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 
-[project.urls]
-Homepage = "https://github.com/arclabs561/rank-learn"
-Documentation = "https://docs.rs/rank-learn"
-Repository = "https://github.com/arclabs561/rank-learn"
-
-[project.optional-dependencies]
-dev = [
-    "pytest>=7.0.0",
-    "pytest-cov>=4.0.0",
-    "mypy>=1.0.0",
-]
-
-[tool.uv]
-cache-keys = [
-    { file = "pyproject.toml" },
-    { file = "../rank-learn/Cargo.toml" },
-    { file = "../rank-learn/src/**/*.rs" },
-    { file = "src/**/*.rs" },
-]
-
+[tool.maturin]
+features = ["pyo3/extension-module"]
+module-name = "rank_learn"

@@ -11,7 +11,7 @@ name = "rank_learn"
 crate-type = ["cdylib"]
 
 [dependencies]
-rank-learn = { path = "../rank-learn" }
+rank-learn = { path = ".." }
 pyo3 = { workspace = true }
 
 [dev-dependencies]

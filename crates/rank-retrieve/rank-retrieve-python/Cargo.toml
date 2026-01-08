@@ -11,6 +11,6 @@ name = "rank_retrieve"
 crate-type = ["cdylib"]
 
 [dependencies]
-rank-retrieve = { path = "../rank-retrieve" }
+rank-retrieve = { path = ".." }
 pyo3 = { version = "0.24", features = ["extension-module", "abi3-py37"] }
 

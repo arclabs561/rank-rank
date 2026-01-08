@@ -1,0 +1,21 @@
+[package]
+name = "rank-comparisons"
+version = "0.1.0"
+edition = "2021"
+
+[workspace]
+
+[[bench]]
+name = "bm25_comparison"
+harness = false
+
+[[bench]]
+name = "dense_comparison"
+harness = false
+
+[dev-dependencies]
+criterion = "0.5"
+rank-retrieve = { path = "../../crates/rank-retrieve/rank-retrieve" }
+# Add other comparison libraries here when available
+# bm25 = "2.3"
+

@@ -39,8 +39,8 @@ echo ""
 # Find all README.md files
 readmes=(
     "$REPO_ROOT/rank-fusion/rank-fusion/README.md"
-    "$REPO_ROOT/rank-refine/rank-refine/README.md"
-    "$REPO_ROOT/rank-relax/README.md"
+    "$REPO_ROOT/rank-rerank/README.md"
+    "$REPO_ROOT/rank-soft/README.md"
     "$REPO_ROOT/rank-eval/README.md"
 )
 

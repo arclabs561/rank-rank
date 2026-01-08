@@ -23,6 +23,5 @@ arbitrary = { version = "1", features = ["derive"] }
 kodama = "0.3"
 
 # Cross-crate dependencies (path-based for development)
-rank-sparse = { path = "crates/rank-sparse/rank-sparse" }
 rank-soft = { path = "crates/rank-soft", package = "rank-soft" }
 

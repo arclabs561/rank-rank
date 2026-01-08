@@ -1,0 +1,8 @@
+# Cargo configuration for local development
+# This enables math rendering in rustdoc for local builds
+
+[build]
+# Note: rustdoc-args can't be set here directly
+# Use: cargo doc --html-in-header rustdoc-header.html
+# Or set RUSTDOCFLAGS environment variable
+
