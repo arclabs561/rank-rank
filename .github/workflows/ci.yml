@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        crate:
+          - rank-retrieve
+          - rank-fusion
+          - rank-rerank
+          - rank-soft
+          - rank-learn
+          - rank-eval
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Test ${{ matrix.crate }}
+        working-directory: crates/${{ matrix.crate }}
+        run: cargo test --all-features
+
+  fmt:
+    name: Format Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Check formatting
+        run: |
+          for crate in rank-retrieve rank-fusion rank-rerank rank-soft rank-learn rank-eval; do
+            echo "Checking $crate..."
+            (cd "crates/$crate" && cargo fmt --check --all) || exit 1
+          done
+
+  clippy:
+    name: Clippy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Run clippy
+        run: |
+          for crate in rank-retrieve rank-fusion rank-rerank rank-soft rank-learn rank-eval; do
+            echo "Checking $crate..."
+            (cd "crates/$crate" && cargo clippy --all-targets --all-features -- -D warnings) || exit 1
+          done
