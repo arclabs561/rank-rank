@@ -1,12 +1,12 @@
 # rank-rank
 
-Ranking and retrieval crates in Rust.
+Ranking and retrieval crates for Rust IR pipelines.
 
 [![CI](https://github.com/arclabs561/rank-rank/actions/workflows/ci.yml/badge.svg)](https://github.com/arclabs561/rank-rank/actions)
 
-Rust ecosystem lacks unified APIs for IR pipelines. Python frameworks provide unified retrieval, but Rust developers must manually compose multiple crates. These crates fill that gap: unified APIs, seamless integration, minimal dependencies.
+Unified APIs for information retrieval in Rust. Python frameworks (LlamaIndex, Haystack) provide unified retrieval, but Rust developers must manually compose multiple crates. These crates fill that gap: consistent interfaces, seamless integration, minimal dependencies.
 
-**Pipeline motivation**: IR systems use multi-stage pipelines for efficiency. First-stage retrieval (BM25, dense ANN) narrows 10M documents to 1000 candidates quickly. Rank fusion combines multiple retrieval methods (hybrid search). Reranking (MaxSim, cross-encoder) precisely scores 1000 candidates down to 100 results. Evaluation metrics measure quality. This pipeline balances speed (retrieval) and precision (reranking).
+**Why multi-stage pipelines**: IR systems balance speed and precision. First-stage retrieval (BM25, dense ANN) narrows 10M documents to 1000 candidates quickly. Fusion combines multiple retrieval methods (hybrid search). Reranking (MaxSim, cross-encoder) precisely scores 1000 candidates down to 100 results. Evaluation metrics measure quality.
 
 **Pipeline**: `rank-retrieve` → `rank-fusion` → `rank-rerank` → `rank-eval`  
 **Training**: `rank-soft` (differentiable ranking), `rank-learn` (LTR algorithms)
@@ -76,9 +76,9 @@ npm install @arclabs561/rank-fusion
 
 ## Limitations
 
-- **In-memory only**: No persistent storage (use `tantivy` or vector DBs for persistence)
-- **Basic implementations**: Not optimized for very large scale (use specialized backends)
-- **Not a full RAG framework**: No document loading, chunking, or LLM integration
+- **In-memory only**: No persistent storage. Use `tantivy` or vector DBs for persistence.
+- **Basic implementations**: Not optimized for very large scale. Use specialized backends for production.
+- **Not a full RAG framework**: No document loading, chunking, or LLM integration.
 
 ## Documentation
 
