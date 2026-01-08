@@ -46,7 +46,7 @@ index.add_document(0, &["machine".to_string(), "learning".to_string()]);
 let bm25_results = retrieve_bm25(&index, &["learning".to_string()], 1000, Bm25Params::default())?;
 
 // 2. Fuse with dense results
-let fused = rrf(&[bm25_results, dense_results], 60)?;
+let fused = rrf(&bm25_results, &dense_results);
 
 // 3. Rerank with MaxSim (1000 → 100 results)
 let reranked = maxsim_vecs(&query_tokens, &candidates, 100)?;
