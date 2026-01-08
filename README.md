@@ -40,7 +40,7 @@ use rank_retrieve::bm25::{InvertedIndex, retrieve_bm25, Bm25Params};
 use rank_fusion::rrf;
 use rank_rerank::simd::maxsim_vecs;
 
-// 1. Retrieve
+// 1. Retrieve (10M docs → 1000 candidates)
 let mut index = InvertedIndex::new();
 index.add_document(0, &["machine".to_string(), "learning".to_string()]);
 let bm25_results = retrieve_bm25(&index, &["learning".to_string()], 1000, Bm25Params::default())?;
@@ -48,7 +48,7 @@ let bm25_results = retrieve_bm25(&index, &["learning".to_string()], 1000, Bm25Pa
 // 2. Fuse with dense results
 let fused = rrf(&[bm25_results, dense_results], 60)?;
 
-// 3. Rerank with MaxSim
+// 3. Rerank with MaxSim (1000 → 100 results)
 let reranked = maxsim_vecs(&query_tokens, &candidates, 100)?;
 ```
 
@@ -72,11 +72,18 @@ uv pip install rank-retrieve
 npm install @arclabs561/rank-fusion
 ```
 
+## Limitations
+
+- **In-memory only**: No persistent storage (use `tantivy` or vector DBs for persistence)
+- **Basic implementations**: Not optimized for very large scale (use specialized backends)
+- **Not a full RAG framework**: No document loading, chunking, or LLM integration
+
 ## Documentation
 
 - `SETUP.md` - Setup instructions
 - `USAGE.md` - Usage guide
 - `docs/` - Integration guides, performance, theory
+- `PLAN.md` - Design constraints, architecture, implementation details
 
 Each crate has its own README and documentation. See individual crate directories.
 
