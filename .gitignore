@@ -1,6 +1,5 @@
 # Rust
 target/
-Cargo.lock
 **/*.rs.bk
 *.pdb
 
@@ -10,10 +9,15 @@ Cargo.lock
 *.swp
 *.swo
 *~
+*.code-workspace
 
 # OS
 .DS_Store
 Thumbs.db
+
+# Archives and historical docs
+archive/
+**/archive/
 
 # Python
 __pycache__/
@@ -49,6 +53,7 @@ benchmark_plot.png
 docs/output/
 *.html
 *.pdf
+!rustdoc-header.html
 
 # Temporary files
 *.tmp
