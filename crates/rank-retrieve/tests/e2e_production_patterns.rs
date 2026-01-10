@@ -12,6 +12,8 @@
 //! - Resource cleanup and memory management
 //! - Performance under load
 
+#![cfg(feature = "bm25")]
+
 #[cfg(test)]
 mod tests {
     use rank_eval::binary::ndcg_at_k;

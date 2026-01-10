@@ -9,6 +9,7 @@
 //! Based on IR testing best practices: different retrieval methods excel
 //! at different query types, so tests should cover diverse query scenarios.
 
+#[cfg(feature = "bm25")]
 use rank_eval::binary::ndcg_at_k;
 #[cfg(feature = "bm25")]
 use rank_retrieve::bm25::{Bm25Params, InvertedIndex};
@@ -18,6 +19,7 @@ use rank_retrieve::dense::DenseRetriever;
 use rank_retrieve::{batch::batch_retrieve_bm25, retrieve_bm25};
 #[cfg(feature = "dense")]
 use rank_retrieve::{batch::batch_retrieve_dense, retrieve_dense};
+#[cfg(feature = "bm25")]
 use std::collections::HashSet;
 
 // Lexical vs Semantic Query Tests

@@ -3,6 +3,8 @@
 //! These tests verify that the factory and autotune work together correctly
 //! and handle edge cases properly.
 
+#![cfg(all(feature = "dense", any(feature = "hnsw", feature = "nsw", feature = "scann", feature = "ivf_pq", feature = "diskann", feature = "sng", feature = "lsh", feature = "annoy", feature = "kdtree", feature = "balltree", feature = "rptree", feature = "kmeans_tree")))]
+
 use rank_retrieve::dense::ann::factory::index_factory;
 use rank_retrieve::dense::ann::autotune::{ParameterTuner, Criterion};
 use rank_retrieve::benchmark::datasets::create_benchmark_dataset;

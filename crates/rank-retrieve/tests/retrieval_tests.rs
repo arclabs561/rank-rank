@@ -8,6 +8,8 @@
 //! - `e2e_fusion_eval.rs` - Integration with rank-fusion and rank-eval
 //! - `e2e_full_pipeline.rs` - Full pipeline with all crates
 
+#![cfg(feature = "bm25")]
+
 use rank_retrieve::batch;
 #[cfg(feature = "bm25")]
 use rank_retrieve::bm25::{Bm25Params, Bm25Variant, InvertedIndex};

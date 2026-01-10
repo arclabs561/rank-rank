@@ -4,7 +4,7 @@
 //! the structure and metrics from ann-benchmarks (erikbern/ann-benchmarks).
 
 mod metrics;
-mod datasets;
+pub mod datasets;
 mod runner;
 mod visualization;
 

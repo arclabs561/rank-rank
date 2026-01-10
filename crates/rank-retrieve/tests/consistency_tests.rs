@@ -13,6 +13,7 @@ use rank_retrieve::bm25::{Bm25Params, InvertedIndex};
 use rank_retrieve::dense::DenseRetriever;
 #[cfg(feature = "sparse")]
 use rank_retrieve::sparse::{SparseRetriever, SparseVector};
+#[allow(unused_imports)]
 use rank_retrieve::RetrieveError;
 #[cfg(feature = "bm25")]
 use rank_retrieve::{batch::batch_retrieve_bm25, retrieve_bm25};

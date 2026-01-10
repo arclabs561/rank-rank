@@ -6,3 +6,9 @@
 # Use: cargo doc --html-in-header rustdoc-header.html
 # Or set RUSTDOCFLAGS environment variable
 
+# Fix for PyO3 on macOS
+[target.aarch64-apple-darwin]
+rustflags = ["-C", "link-arg=-undefined", "-C", "link-arg=dynamic_lookup"]
+
+[target.x86_64-apple-darwin]
+rustflags = ["-C", "link-arg=-undefined", "-C", "link-arg=dynamic_lookup"]

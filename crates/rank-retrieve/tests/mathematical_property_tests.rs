@@ -9,6 +9,7 @@
 //! - Formal invariants (score ranges, probability properties)
 //! - Algorithmic correctness (optimality conditions, approximation bounds)
 
+#[allow(unused_imports)]
 use rank_retrieve::bm25::{Bm25Params, Bm25Variant, InvertedIndex};
 
 #[cfg(feature = "dense")]

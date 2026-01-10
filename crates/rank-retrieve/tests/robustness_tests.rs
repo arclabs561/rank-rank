@@ -8,6 +8,7 @@
 //! Based on IR testing best practices: retrieval systems should handle
 //! various query formulations and edge cases gracefully.
 
+#[cfg(feature = "bm25")]
 use rank_eval::binary::{ndcg_at_k, precision_at_k, recall_at_k};
 #[cfg(feature = "bm25")]
 use rank_retrieve::bm25::{Bm25Params, InvertedIndex};
@@ -17,6 +18,7 @@ use rank_retrieve::dense::DenseRetriever;
 use rank_retrieve::retrieve_dense;
 #[cfg(feature = "bm25")]
 use rank_retrieve::{batch::batch_retrieve_bm25, retrieve_bm25};
+#[cfg(feature = "bm25")]
 use std::collections::HashSet;
 
 // Paraphrase Handling Tests

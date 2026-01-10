@@ -8,6 +8,8 @@
 //! - `late_interaction_tests.rs`: Specialized tests for ColBERT/MaxSim token-level matching
 //!   (tests the research-backed BM25 → MaxSim pipeline)
 
+#![cfg(all(feature = "dense", feature = "bm25", feature = "sparse"))]
+
 #[cfg(test)]
 mod tests {
     use rank_eval::binary::{mrr, ndcg_at_k, precision_at_k, recall_at_k};

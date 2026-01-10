@@ -11,7 +11,7 @@ proptest! {
     #[test]
     fn test_heap_vs_sort_equivalence(
         scores in prop::collection::vec(
-            (0.001f32..1000.0f32), // Start from 0.001 to avoid zero, use range instead of filter
+            0.001f32..1000.0f32, // Start from 0.001 to avoid zero, use range instead of filter
             10..1000
         ),
         k in 1usize..100

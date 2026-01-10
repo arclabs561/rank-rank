@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 //! Realistic dataset tests using rank-eval's dataset loaders.
 //!
 //! These tests use real-world datasets (MS MARCO, BEIR) when available,

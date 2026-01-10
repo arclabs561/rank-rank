@@ -2,6 +2,8 @@
 //!
 //! Tests boundary conditions, error cases, and unusual inputs.
 
+#![cfg(all(feature = "dense", any(feature = "hnsw", feature = "nsw", feature = "scann", feature = "ivf_pq", feature = "diskann", feature = "sng", feature = "lsh", feature = "annoy", feature = "kdtree", feature = "balltree", feature = "rptree", feature = "kmeans_tree")))]
+
 use rank_retrieve::dense::ann::factory::index_factory;
 use rank_retrieve::RetrieveError;
 
