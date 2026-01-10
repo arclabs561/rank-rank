@@ -468,4 +468,174 @@ mod tests {
             "Late interaction should rank relevant documents highly"
         );
     }
+
+    /// Test ColPali multimodal retrieval: text query tokens vs image patch embeddings
+    #[cfg(feature = "bm25")]
+    #[test]
+    fn test_colpali_multimodal_retrieval() {
+        // Setup: Create BM25 index on document text/metadata
+        let mut index = InvertedIndex::new();
+        let documents = vec![
+            (0, "revenue chart Q3 financial report"),
+            (1, "machine learning neural network diagram"),
+            (2, "python programming code example"),
+        ];
+
+        for (id, text) in &documents {
+            let terms: Vec<String> = text.split_whitespace().map(|s| s.to_string()).collect();
+            index.add_document(*id, &terms);
+        }
+
+        // Step 1: BM25 first-stage retrieval on text/metadata
+        let query_terms = vec!["revenue".to_string(), "Q3".to_string(), "chart".to_string()];
+        let candidates = retrieve_bm25(&index, &query_terms, 1000, Bm25Params::default()).unwrap();
+        assert!(!candidates.is_empty());
+
+        // Step 2: Prepare ColPali embeddings
+        // Query: text tokens
+        let query_text = "revenue Q3 chart";
+        let query_tokens = mock_token_embed(query_text, 128);
+
+        // Documents: image patch embeddings (simulated)
+        // In real ColPali, images are split into patches (e.g., 32×32 = 1024 patches)
+        fn mock_image_patches_colpali(image_id: u32, n_patches: usize) -> Vec<Vec<f32>> {
+            (0..n_patches)
+                .map(|patch_idx| {
+                    let mut emb = vec![0.0; 128];
+                    for i in 0..128 {
+                        emb[i] = ((image_id as f32 * 100.0 + patch_idx as f32 * 10.0 + i as f32)
+                            / 1000.0)
+                            .sin()
+                            .abs();
+                    }
+                    // L2 normalize
+                    let norm: f32 = emb.iter().map(|x| x * x).sum::<f32>().sqrt();
+                    if norm > 0.0 {
+                        emb.iter_mut().for_each(|x| *x /= norm);
+                    }
+                    emb
+                })
+                .collect()
+        }
+
+        let doc_image_patches: Vec<(u32, Vec<Vec<f32>>)> = candidates
+            .iter()
+            .map(|(id, _)| {
+                // Simplified: use 16 patches for demo (real ColPali uses 1024)
+                (*id, mock_image_patches_colpali(*id, 16))
+            })
+            .collect();
+
+        // Step 3: ColPali MaxSim reranking (text-to-image)
+        let reranked: Vec<(u32, f32)> = colbert::rank(&query_tokens, &doc_image_patches);
+        assert!(!reranked.is_empty());
+        assert_eq!(reranked.len(), doc_image_patches.len());
+
+        // Verify sorting (descending by score)
+        for i in 1..reranked.len() {
+            assert!(
+                reranked[i - 1].1 >= reranked[i].1,
+                "Results should be sorted descending"
+            );
+        }
+
+        // Step 4: Test visual snippet extraction using alignments
+        if let Some((top_id, top_patches)) = doc_image_patches.iter().find(|(id, _)| {
+            reranked.first().map(|(r_id, _)| r_id == id).unwrap_or(false)
+        }) {
+            let alignments = colbert::alignments(&query_tokens, top_patches);
+            assert_eq!(alignments.len(), query_tokens.len());
+
+            // Each query token should align with at least one image patch
+            for (q_idx, patch_idx, score) in &alignments {
+                assert!(*patch_idx < top_patches.len());
+                assert!(*score >= 0.0 && *score <= 1.0);
+            }
+
+            // Extract highlighted patches
+            let highlighted = colbert::highlight(&query_tokens, top_patches, 0.7);
+            // With mock embeddings, similarity might be low, so we allow empty highlights
+            // In real ColPali, patches would have higher similarity to query tokens
+            assert!(highlighted.len() <= top_patches.len());
+        }
+    }
+
+    /// Test that ColPali uses the same MaxSim mechanism as ColBERT
+    #[test]
+    fn test_colpali_same_maxsim_as_colbert() {
+        // Query: text tokens
+        let query_tokens = mock_token_embed("revenue chart", 128);
+
+        // ColBERT: text document tokens
+        let doc_text_tokens = mock_token_embed("revenue financial chart report", 128);
+
+        // ColPali: image patch embeddings (simulated)
+        // In real ColPali, these would be from image patches, but the MaxSim algorithm is identical
+        let doc_image_patches = vec![
+            mock_dense_embed("revenue", 128),
+            mock_dense_embed("financial", 128),
+            mock_dense_embed("chart", 128),
+            mock_dense_embed("report", 128),
+        ];
+
+        // Both should use the same MaxSim scoring
+        let colbert_score = colbert::rank(&query_tokens, &[("doc1", doc_text_tokens.clone())]);
+        let colpali_score = colbert::rank(&query_tokens, &[("doc1", doc_image_patches)]);
+
+        // Scores should be comparable (both use MaxSim)
+        assert!(!colbert_score.is_empty());
+        assert!(!colpali_score.is_empty());
+        assert!(colbert_score[0].1.is_finite());
+        assert!(colpali_score[0].1.is_finite());
+    }
+
+    /// Test ColPali with hybrid retrieval (BM25 text + ColPali image)
+    #[cfg(feature = "bm25")]
+    #[test]
+    fn test_colpali_hybrid_retrieval() {
+        use rank_fusion::rrf;
+
+        // Setup BM25 index
+        let mut index = InvertedIndex::new();
+        let documents = vec![
+            (0, "revenue chart Q3"),
+            (1, "machine learning diagram"),
+        ];
+
+        for (id, text) in &documents {
+            let terms: Vec<String> = text.split_whitespace().map(|s| s.to_string()).collect();
+            index.add_document(*id, &terms);
+        }
+
+        // BM25 retrieval
+        let query_terms = vec!["revenue".to_string(), "chart".to_string()];
+        let bm25_results = retrieve_bm25(&index, &query_terms, 1000, Bm25Params::default()).unwrap();
+
+        // ColPali reranking
+        let query_tokens = mock_token_embed("revenue chart", 128);
+        fn mock_image_patches_simple(_id: u32) -> Vec<Vec<f32>> {
+            (0..16)
+                .map(|i| mock_dense_embed(&format!("patch{}", i), 128))
+                .collect()
+        }
+        let doc_image_patches: Vec<(u32, Vec<Vec<f32>>)> = bm25_results
+            .iter()
+            .map(|(id, _)| (*id, mock_image_patches_simple(*id)))
+            .collect();
+        let colpali_results = colbert::rank(&query_tokens, &doc_image_patches);
+
+        // Fuse BM25 and ColPali results
+        let bm25_string: Vec<(String, f32)> = bm25_results
+            .iter()
+            .map(|(id, score)| (id.to_string(), *score))
+            .collect();
+        let colpali_string: Vec<(String, f32)> = colpali_results
+            .iter()
+            .map(|(id, score)| (id.to_string(), *score))
+            .collect();
+
+        let fused = rrf(&bm25_string, &colpali_string);
+        assert!(!fused.is_empty());
+        assert!(fused.len() <= bm25_results.len() + colpali_results.len());
+    }
 }

@@ -241,9 +241,7 @@ The current README is minimal and accurate, but could be improved:
    - When to use rank-* vs Python frameworks (Rust-native, performance)
    - When NOT to use rank-* (need full RAG, very large scale)
 
-6. **Training crates unclear**: rank-soft and rank-learn are listed under
-   "Training" but it's not clear how they relate to the pipeline stages or
-   when you'd use them.
+6. **Training crates**: rank-soft provides both differentiable ranking operations and Learning to Rank algorithms (LambdaRank, Ranking SVM, neural LTR). Used for training ranking models, not part of the inference pipeline.
 
 7. **WASM/npm only for some crates**: rank-fusion and rank-rerank have npm
    packages, but rank-retrieve doesn't. This is inconsistent and should be
@@ -313,15 +311,18 @@ The current README is minimal and accurate, but could be improved:
 - Requires regularization parameter tuning
 - May not converge to exact discrete ranking
 
-### rank-learn
+### rank-soft (includes LTR algorithms)
 
 **What it optimizes for:**
-- Complete LTR frameworks (LambdaRank, LambdaMART, Ranking SVM)
-- Rust-native implementation
+- Differentiable ranking operations (soft ranking, sorting, loss functions)
+- Learning to Rank algorithms (LambdaRank, Ranking SVM, neural LTR)
+- Framework agnostic (works with PyTorch, JAX, Rust ML)
 
 **Constraints:**
-- Not yet fully implemented (in progress)
-- Requires labeled training data
+- Not for inference (only training)
+- Requires regularization parameter tuning
+- May not converge to exact discrete ranking
+- Requires labeled training data for LTR algorithms
 
 ### rank-eval
 
@@ -384,8 +385,7 @@ actually means:
 
 5. **Add pipeline diagram**: Show the flow from retrieval to evaluation.
 
-6. **Explain training crates**: Clarify that rank-soft and rank-learn are for
-   training ranking models, not part of the inference pipeline.
+6. **Explain training crate**: Clarify that rank-soft provides both differentiable ranking operations and LTR algorithms for training ranking models, not part of the inference pipeline.
 
 7. **Fix WASM inconsistency**: Either add WASM to all crates or explain why
    only some have it.

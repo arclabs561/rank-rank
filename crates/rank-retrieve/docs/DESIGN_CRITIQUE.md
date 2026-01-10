@@ -27,7 +27,7 @@ default = []  # All other rank-* crates
 ```
 
 **Original Impact:**
-- Inconsistent with `rank-soft`, `rank-rerank`, `rank-fusion`, `rank-learn`
+- Inconsistent with `rank-soft`, `rank-rerank`, `rank-fusion` (rank-learn merged into rank-soft)
 - Violates workspace principle: "Minimal Defaults: All crates use `default = []`"
 - Forces users to opt-out rather than opt-in
 - Increases compile time and binary size by default

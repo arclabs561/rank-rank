@@ -139,10 +139,8 @@ impl LTRGRTrainer {
                 if *score > best_positive_score {
                     best_positive_score = *score;
                 }
-            } else {
-                if *score > best_negative_score {
-                    best_negative_score = *score;
-                }
+            } else if *score > best_negative_score {
+                best_negative_score = *score;
             }
         }
 

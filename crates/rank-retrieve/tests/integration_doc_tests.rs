@@ -5,9 +5,7 @@
 
 #[cfg(test)]
 mod tests {
-    use crate::test_helpers::{mock_dense_embed, mock_token_embed};
-    use rank_eval::binary::ndcg_at_k;
-    use rank_fusion::rrf;
+    use crate::test_helpers::mock_token_embed;
     use rank_rerank::colbert;
     #[cfg(feature = "dense")]
     use rank_retrieve::retrieve_dense;
@@ -16,7 +14,6 @@ mod tests {
         bm25::{Bm25Params, InvertedIndex},
         retrieve_bm25,
     };
-    use std::collections::HashSet;
 
     /// Validates the complete pipeline example from LATE_INTERACTION_GUIDE.md
     #[cfg(feature = "bm25")]

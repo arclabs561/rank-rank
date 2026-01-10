@@ -21,13 +21,14 @@
 //! assert_eq!(results.len(), 2);
 //! ```
 
+#[cfg(any(feature = "bm25", feature = "dense", feature = "sparse"))]
+use crate::error::RetrieveError;
 #[cfg(feature = "bm25")]
 use crate::bm25::{Bm25Params, InvertedIndex};
 #[cfg(feature = "dense")]
 use crate::dense::DenseRetriever;
 #[cfg(feature = "sparse")]
 use crate::sparse::{SparseRetriever, SparseVector};
-use crate::RetrieveError;
 
 /// Retrieve top-k documents for multiple queries using BM25.
 ///

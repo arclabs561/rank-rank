@@ -84,13 +84,15 @@ fn bench_full_retrieval(c: &mut Criterion) {
     let mut group = c.benchmark_group("generative_full_retrieval");
 
     for (n_docs, beam_size, k) in [(10, 5, 5), (100, 10, 10), (1000, 15, 20)].iter() {
-        let corpus_strings = generate_corpus(*n_docs);
-        let corpus: Vec<(usize, &str)> = corpus_strings
-            .iter()
-            .map(|(id, text)| (*id, text.as_str()))
-            .collect();
+        let corpus = generate_corpus(*n_docs);
         let model = MockAutoregressiveModel::new();
-        let retriever = GenerativeRetriever::new(model).with_beam_size(*beam_size);
+        let mut retriever = GenerativeRetriever::new(model).with_beam_size(*beam_size);
+        
+        // Add documents to retriever
+        for (doc_id, passage_text) in &corpus {
+            retriever.add_document(*doc_id as u32, passage_text);
+        }
+        
         let query = "What is machine learning?";
 
         group.bench_with_input(
@@ -98,10 +100,10 @@ fn bench_full_retrieval(c: &mut Criterion) {
                 "retrieve",
                 format!("{}docs_beam{}_k{}", n_docs, beam_size, k),
             ),
-            &(retriever, corpus, query),
-            |b, (retriever, corpus, query)| {
+            &(retriever, query),
+            |b, (retriever, query)| {
                 b.iter(|| {
-                    let _ = black_box(retriever.retrieve(query, corpus, *k).unwrap());
+                    let _ = black_box(retriever.retrieve(query, *k).unwrap());
                 })
             },
         );

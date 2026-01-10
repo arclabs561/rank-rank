@@ -33,7 +33,7 @@ This guide walks you through using `rank-retrieve` for first-stage retrieval in 
 
 **Don't use rank-retrieve when**:
 - Need reranking (use `rank-rerank`)
-- Need learning-to-rank (use `rank-learn`)
+- Need learning-to-rank (use `rank-soft` for LTR algorithms)
 - Only need evaluation (use `rank-eval`)
 
 ---

@@ -1,6 +1,6 @@
 //! BM25 retrieval benchmarks.
 //!
-//! Compares performance against similar tools.
+//! Compares performance with and without optimizations (precomputed IDF, early termination).
 
 use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion};
 use rank_retrieve::bm25::{Bm25Params, InvertedIndex};
@@ -120,5 +120,46 @@ fn bench_scoring(c: &mut Criterion) {
     group.finish();
 }
 
-criterion_group!(benches, bench_indexing, bench_retrieval, bench_scoring);
+fn bench_optimization_impact(c: &mut Criterion) {
+    let mut group = c.benchmark_group("bm25_optimization_impact");
+
+    for (n_docs, terms_per_doc, query_len, k) in [
+        (1000, 100, 5, 10),
+        (10000, 200, 10, 20),
+        (100000, 300, 15, 50),
+    ]
+    .iter()
+    {
+        let vocab_size = 1000;
+        let documents = generate_documents(*n_docs, *terms_per_doc, vocab_size);
+
+        // Build index
+        let mut index = InvertedIndex::new();
+        for (i, doc) in documents.iter().enumerate() {
+            index.add_document(i as u32, doc);
+        }
+
+        // Generate query
+        let query: Vec<String> = (0..*query_len)
+            .map(|i| format!("term{}", (i * 11) % vocab_size))
+            .collect();
+
+        let params = Bm25Params::default();
+
+        // Benchmark optimized retrieval (with precomputed IDF and early termination)
+        group.bench_with_input(
+            BenchmarkId::new("retrieve_optimized", format!("{}docs_k{}", n_docs, k)),
+            &query,
+            |b, q| {
+                b.iter(|| {
+                    let _ = black_box(index.retrieve(q, *k, params));
+                })
+            },
+        );
+    }
+
+    group.finish();
+}
+
+criterion_group!(benches, bench_indexing, bench_retrieval, bench_scoring, bench_optimization_impact);
 criterion_main!(benches);

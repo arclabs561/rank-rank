@@ -1,31 +1,26 @@
-[workspace]
-members = ["rank-retrieve-python"]
-resolver = "2"
-default-members = ["."]
+# Workspace moved to root - this crate is now a member of the root workspace
+# Note: Python bindings (rank-retrieve-python) are also members of root workspace
 
-[workspace.package]
-version = "0.1.0"
+[package]
+name = "rank-retrieve"
+version = "0.1.0"  # Override root workspace version
 edition = "2021"
 rust-version = "1.74"
 license = "MIT OR Apache-2.0"
 authors = ["Arc <attobop@gmail.com>"]
-
-[workspace.dependencies]
-proptest = "1"
-criterion = "0.5"
-serde = { version = "1.0", features = ["derive"] }
-
-[package]
-name = "rank-retrieve"
-version.workspace = true
-edition.workspace = true
-rust-version.workspace = true
-license.workspace = true
-authors.workspace = true
-description = "First-stage retrieval: BM25, dense ANN, sparse vectors. Unified API for RAG pipelines and hybrid search."
+description = "First-stage retrieval: BM25, dense ANN, sparse vectors. For RAG pipelines and hybrid search."
 repository = "https://github.com/arclabs561/rank-rank/tree/main/crates/rank-retrieve"
+homepage = "https://github.com/arclabs561/rank-rank"
 documentation = "https://docs.rs/rank-retrieve"
-keywords = ["search", "retrieval", "bm25", "ann", "information-retrieval"]
+keywords = [
+    "search",
+    "retrieval",
+    "bm25",
+    "ann",
+    "information-retrieval",
+    "vector-search",
+    "rag",
+]
 categories = ["algorithms", "science"]
 
 [lib]
@@ -35,8 +30,20 @@ path = "src/lib.rs"
 [dependencies]
 # Serde for sparse vector serialization (optional)
 serde = { workspace = true, optional = true }
+serde_json = { version = "1.0", optional = true }
 
-# Random sampling for LTRGR negative sampling
+# Persistence dependencies
+# NOTE: bincode is deprecated (discontinued Aug 2025). Migrating to postcard/rkyv.
+bincode = { version = "1.3", optional = true }  # DEPRECATED: Use postcard or rkyv
+postcard = { version = "1.1", optional = true, features = ["use-crc", "alloc"] }  # Format stability, built-in CRC32
+bytemuck = { version = "1.16", optional = true, features = ["derive"] }  # Zero-copy memory-mapped access, SIMD-friendly
+byteorder = { version = "1.5", optional = true }
+crc32fast = { version = "1.3", optional = true }
+fst = { version = "0.4", optional = true }
+memmap2 = { version = "0.9", optional = true }
+libc = { version = "0.2", optional = true }
+
+# Random sampling for LTRGR negative sampling and HNSW layer assignment
 rand = { version = "0.8", optional = true }
 
 # Unicode normalization for better identifier matching (optional)
@@ -46,12 +53,29 @@ unicode-normalization = { version = "0.1", optional = true }
 qdrant-client = { version = "1.7", optional = true }
 futures = { version = "0.3", optional = true }
 
+# HNSW implementation dependencies
+smallvec = { version = "1.11", optional = true }
+
+# ID compression dependencies (ANS entropy coding)
+constriction = { version = "0.3", optional = true }
+
 # No backend dependencies - users implement the Backend trait for their chosen backend
 
 [features]
 default = []
+# Persistence support (disk storage for indexes)
+# postcard: Format-stable serialization (replaces bincode for WAL/metadata)
+# bytemuck: Zero-copy memory-mapped access, SIMD-friendly
+persistence = ["dep:postcard", "dep:bytemuck", "dep:byteorder", "dep:crc32fast", "dep:fst", "dep:memmap2", "dep:libc", "serde"]
+# Memory mapping support (zero-copy access to large files)
+memmap = ["persistence"]
+# Legacy bincode support (deprecated, will be removed)
+persistence-bincode = ["dep:bincode", "persistence"]
 # Core retrieval implementations (opt-in for minimal builds)
 bm25 = []  # BM25 retrieval with inverted index
+tfidf = ["bm25"]  # TF-IDF retrieval (reuses BM25 index structure)
+query-expansion = ["bm25"]  # Query expansion and PRF (requires BM25 for term extraction)
+query-likelihood = ["bm25"]  # Query likelihood language models (requires BM25 for index)
 dense = []  # Dense retrieval with cosine similarity
 sparse = []  # Sparse retrieval with dot product
 generative = ["dep:rand"]  # Generative retrieval (LTRGR) - requires rand for training
@@ -61,6 +85,54 @@ ltrgr = ["dep:rand"]
 unicode = ["dep:unicode-normalization"]
 # Qdrant integration example (optional dependency)
 qdrant = ["dep:qdrant-client", "dep:futures"]
+# HNSW approximate nearest neighbor search (pure Rust, SIMD-accelerated)
+# Requires dense feature for SIMD support
+hnsw = ["dense", "dep:smallvec", "dep:rand"]
+# Flat Navigable Small World (NSW) - single-layer variant with lower memory overhead
+nsw = ["dense", "dep:smallvec", "dep:rand"]
+# Anisotropic Vector Quantization with k-means Partitioning (vendor: SCANN) - quantization-based ANN
+scann = ["dense", "dep:rand"]
+# IVF-PQ (Inverted File Index with Product Quantization)
+ivf_pq = ["dense", "dep:rand"]
+# OPQ (Optimized Product Quantization) - optimizes space decomposition (requires scann)
+opq = ["dense", "scann", "ivf_pq"]
+# Online PQ (Online Product Quantization) - adapts to dynamic datasets (requires scann)
+online_pq = ["dense", "scann", "ivf_pq"]
+# ID compression for vector IDs (lossless compression using ROC/REC)
+id-compression = ["dep:constriction"]
+# DiskANN (disk-based ANN for very large datasets)
+diskann = ["dense", "dep:smallvec", "dep:rand"]
+# OPT-SNG (Optimized Sparse Neighborhood Graph) - 5.9x construction speedup
+sng = ["dense", "dep:smallvec", "dep:rand"]
+# Vamana - Two-pass graph construction with RRND + RND (competitive with HNSW)
+# Note: Requires hnsw feature for ND strategies (RND, RRND)
+vamana = ["dense", "hnsw", "dep:smallvec", "dep:rand"]
+# SAQ (Segmented Adaptive Quantization) - 80% better quantization
+saq = ["dense", "dep:rand"]
+# TurboQuant - Online quantization, near-optimal distortion
+turboquant = ["dense", "dep:rand"]
+# LSH (Locality Sensitive Hashing) - Classic hash-based method
+lsh = ["dense", "dep:rand"]
+# Random Projection Tree Forest (vendor: Annoy/Spotify) - Tree-based ANN
+annoy = ["dense", "dep:rand"]
+# KD-Tree - Classic tree method for low dimensions
+kdtree = ["dense"]
+# Ball Tree - Better than KD-tree for medium dimensions
+balltree = ["dense"]
+# Random Projection Trees - Good baseline method
+rptree = ["dense", "dep:rand"]
+# K-Means Tree - Hierarchical clustering tree for fast similarity search
+kmeans_tree = ["dense", "dep:rand"]
+# EVōC (Embedding Vector Oriented Clustering) - Hierarchical clustering for embeddings
+evoc = ["dense", "dep:rand"]
+# Modern ANN methods (2024-2025)
+ann_modern = ["hnsw", "scann", "ivf_pq", "diskann", "sng", "saq", "turboquant"]
+# Classic ANN methods
+ann_classic = ["lsh", "annoy", "kdtree", "balltree", "rptree", "kmeans_tree"]
+# All ANN algorithms
+ann_all = ["ann_modern", "ann_classic"]
+# Standard benchmarking utilities (following ann-benchmarks)
+benchmark = ["dense", "serde", "serde_json"]
 # Convenience feature for all implementations
 all = ["bm25", "dense", "sparse", "generative"]
 
@@ -85,12 +157,64 @@ name = "qdrant_real_integration"
 path = "examples/qdrant_real_integration.rs"
 
 [[example]]
+name = "realistic_retrieval"
+path = "examples/realistic_retrieval.rs"
+
+[[example]]
+name = "realistic_evaluation"
+path = "examples/realistic_evaluation.rs"
+
+[[example]]
 name = "late_interaction_pipeline"
 path = "examples/late_interaction_pipeline.rs"
+
+[[example]]
+name = "tfidf_retrieval"
+path = "examples/tfidf_retrieval.rs"
+
+[[example]]
+name = "bm25_variants"
+path = "examples/bm25_variants.rs"
+
+[[example]]
+name = "query_expansion"
+path = "examples/query_expansion.rs"
+
+[[example]]
+name = "query_likelihood"
+path = "examples/query_likelihood.rs"
+
+[[example]]
+name = "factory_and_autotune"
+path = "examples/factory_and_autotune.rs"
+
+[[example]]
+name = "vamana_basic"
+path = "examples/vamana_basic.rs"
+required-features = ["vamana"]
+
+[[example]]
+name = "semantic_caching"
+path = "examples/semantic_caching.rs"
+
+[[example]]
+name = "quantization_methods"
+path = "examples/quantization_methods.rs"
+
+[[example]]
+name = "kmeans_tree_example"
+path = "examples/kmeans_tree_example.rs"
+
+[[example]]
+name = "usearch_integration"
+path = "examples/usearch_integration.rs"
+required-features = ["bm25"]
 
 [dev-dependencies]
 proptest = { workspace = true }
 criterion = { workspace = true }
+rand = "0.8"
+rand_chacha = "0.3"  # For deterministic random number generation in tests
 # For real E2E integration tests and examples (available in monorepo)
 rank-fusion = { path = "../rank-fusion" }
 rank-eval = { path = "../rank-eval" }
@@ -105,6 +229,14 @@ name = "dense"
 harness = false
 
 [[bench]]
+name = "ann_benchmarks"
+harness = false
+
+[[bench]]
+name = "ann_benchmarks_standard"
+harness = false
+
+[[bench]]
 name = "sparse"
 harness = false
 
@@ -116,6 +248,28 @@ harness = false
 name = "routing"
 harness = false
 
+[[bench]]
+name = "sort_performance"
+harness = false
+
+[[bench]]
+name = "early_termination"
+harness = false
+
+[[bench]]
+name = "id_compression"
+harness = false
+
+[[bench]]
+name = "factory_performance"
+harness = false
+
 [package.metadata.docs.rs]
 rustdoc-args = ["--html-in-header", "../../rustdoc-header.html"]
 
+[lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(feature, values("rand"))'] }
+
+[lints.clippy]
+# Allow explicit indexing in numeric code - matches mathematical formulas more clearly
+needless_range_loop = "allow"

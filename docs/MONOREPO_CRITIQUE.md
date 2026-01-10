@@ -19,24 +19,23 @@ The current `rank-rank` monorepo structure is **partially correct** but has sign
 ### Structure
 
 ```
-rank-rank/                    (Virtual workspace root)
-├── Cargo.toml                (Shared dependencies only, NO members)
+rank-rank/                    (Workspace root)
+├── Cargo.toml                (Workspace with all crates as members)
 ├── crates/
-│   ├── rank-retrieve/        (Independent workspace)
-│   ├── rank-fusion/          (Independent workspace)
-│   ├── rank-rerank/          (Independent workspace)
-│   ├── rank-soft/            (Independent workspace)
-│   ├── rank-learn/           (Independent workspace, depends on rank-soft)
-│   └── rank-eval/            (Independent workspace)
+│   ├── rank-retrieve/        (Workspace member)
+│   ├── rank-fusion/          (Workspace member)
+│   ├── rank-rerank/          (Workspace member)
+│   ├── rank-soft/            (Workspace member - includes LTR algorithms)
+│   └── rank-eval/            (Workspace member)
 ```
 
 ### Key Observations
 
-1. **Root workspace is virtual** - No `members = [...]` declaration
-2. **Each crate is an independent workspace** - Own `Cargo.toml` with `[workspace]`
-3. **Cross-crate dependencies exist** - `rank-learn` depends on `rank-soft` via path
-4. **Version numbers are independent** - No coordination strategy
-5. **Publishing is per-crate** - No unified workspace publishing
+1. **Root workspace includes all crates** - ✅ All crates are workspace members
+2. **Python bindings are per-crate workspace members** - ✅ Correct structure
+3. **Cross-crate dependencies properly specified** - ✅ With version constraints
+4. **Version numbers are independent** - Each crate versions independently
+5. **Publishing is per-crate** - Can use `cargo publish --workspace` for coordination
 
 ---
 
@@ -87,35 +86,21 @@ rank-rank/                    (Virtual workspace root)
 
 **Key Insight:** Python bindings should NOT be in the root workspace. They belong in each crate's workspace (current structure is correct for this). However, the root workspace should still include all Rust crates.
 
-### 2. **Cross-Crate Dependency Management**
+### 2. **Cross-Crate Dependency Management** ✅ RESOLVED
 
-**Problem:** `rank-learn` depends on `rank-soft` using path-only dependency:
+**Status:** All cross-crate dependencies properly specify versions.
 
-```toml
-# rank-learn/Cargo.toml
-[workspace.dependencies]
-rank-soft = { path = "../rank-soft", package = "rank-soft" }
+**Current State:**
+- All workspace dependencies include version specifications
+- Dependencies are properly declared in `[workspace.dependencies]` with versions
+- Individual crates reference workspace dependencies correctly
 
-[dependencies]
-rank-soft = { workspace = true }
-```
-
-**Issues:**
-- No version specification for publishing
-- Will fail `cargo publish` verification
-- Cannot be published until `rank-soft` is published first
-- No version constraint for published users
-
-**Required Fix:**
-```toml
-rank-soft = { path = "../rank-soft", version = "0.1", package = "rank-soft" }
-```
+**Note:** `rank-learn` has been merged into `rank-soft` (January 2025), eliminating the previous cross-crate dependency issue.
 
 **Python Bindings Consideration:**
-- Python bindings (`rank-learn-python`) depend on parent Rust crate via path
-- This is correct for local development
+- Python bindings depend on parent Rust crate via path (correct for local development)
 - When publishing, maturin handles path→version conversion automatically
-- However, if `rank-learn-python` needed to depend on `rank-soft-python`, that would require PyPI version constraints (not currently needed)
+- No cross-crate Python dependencies currently needed
 
 ### 3. **No Publishing Coordination Strategy**
 
@@ -127,7 +112,6 @@ rank-soft = { path = "../rank-soft", version = "0.1", package = "rank-soft" }
 - Others: v0.1.0 (very early)
 
 **Issues:**
-- Breaking changes in `rank-soft` could break `rank-learn` without coordination
 - No mechanism to publish interdependent crates together
 - Manual ordering required for publishing
 - Risk of inconsistent published states
@@ -151,7 +135,7 @@ rank-soft = { path = "../rank-soft", version = "0.1", package = "rank-soft" }
 - `rank-eval`: 0.1.0 (Rust) / 0.1.0 (Python) ✅
 - `rank-retrieve`: 0.1.0 (Rust) / 0.1.0 (Python) ✅
 - `rank-soft`: 0.1.0 (Rust) / 0.1.0 (Python) ✅
-- `rank-learn`: 0.1.0 (Rust) / N/A (no Python bindings yet)
+- `rank-soft`: 0.1.0 (Rust) / 0.1.0 (Python) - Includes LTR algorithms
 
 **Good News:**
 - ✅ Rust and Python versions are synchronized within each crate
@@ -218,10 +202,12 @@ Each crate has its own `.github/workflows/publish.yml` that:
 3. Publishes Python package to PyPI
 
 **Problems:**
-1. **No cross-crate coordination** - Publishing `rank-learn` doesn't ensure `rank-soft` is published first
+1. **No cross-crate coordination** - Publishing interdependent crates requires manual ordering
 2. **Manual ordering required** - Must publish dependencies before dependents
 3. **No atomic publishing** - Partial failures leave inconsistent state
 4. **Version validation is per-crate** - Doesn't check cross-crate compatibility
+
+**Note:** `rank-learn` has been merged into `rank-soft` (January 2025), reducing cross-crate dependencies.
 
 ### What's Missing
 
@@ -290,12 +276,15 @@ cargo publish --workspace  # Publishes all crates in dependency order
    [workspace]
    members = [
        "crates/rank-retrieve",
+       "crates/rank-retrieve/rank-retrieve-python",
        "crates/rank-fusion",
+       "crates/rank-fusion/rank-fusion-python",
        "crates/rank-rerank",
+       "crates/rank-rerank/rank-rerank-python",
        "crates/rank-soft",
-       "crates/rank-learn",
+       "crates/rank-soft/rank-soft-python",
        "crates/rank-eval",
-       # Note: Python bindings are members of their parent crate's workspace, not root
+       "crates/rank-eval/rank-eval-python",
    ]
    resolver = "2"
    ```
@@ -366,23 +355,17 @@ cargo publish --workspace  # Publishes all crates in dependency order
 
 ## Specific Code Issues Found
 
-### Issue 1: rank-learn Dependency
+### Issue 1: rank-learn Merged into rank-soft ✅ RESOLVED
 
-**File:** `crates/rank-learn/Cargo.toml`
+**Status:** `rank-learn` functionality has been merged into `rank-soft` (January 2025).
 
-**Current:**
-```toml
-[workspace.dependencies]
-rank-soft = { path = "../rank-soft", package = "rank-soft" }
-```
+**Resolution:**
+- LambdaRank, Ranking SVM, and Neural LTR are now in `rank-soft`
+- All LTR algorithms available through `rank-soft` API
+- Unified training crate for all ranking training needs
+- Matches industry patterns (LightGBM/XGBoost integrate ranking objectives)
 
-**Problem:** No version specification. Will fail publishing.
-
-**Fix:**
-```toml
-[workspace.dependencies]
-rank-soft = { path = "../rank-soft", version = "0.1", package = "rank-soft" }
-```
+**Note:** The `rank-learn` directory may still exist for historical reference but is deprecated.
 
 ### Issue 2: Root Workspace Configuration
 

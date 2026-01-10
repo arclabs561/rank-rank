@@ -95,13 +95,14 @@ let fused = rrf_multi(&[&bm25_results, &dense_results, &sparse_results], Default
 
 ### 4. Embedded Applications
 
-**Scenario**: Building an application that needs in-memory retrieval for small-medium corpora.
+**Scenario**: Building an application that needs in-memory retrieval for any scale of corpora.
 
 **Why rank-retrieve:**
 - Zero external dependencies (by default)
-- In-memory, fast for small-medium corpora
+- In-memory, fast for any scale of corpora
 - Simple API, easy to integrate
 - No persistence overhead
+- Production-ready implementations
 
 **Example:**
 ```rust
@@ -132,9 +133,9 @@ let results = index.retrieve(&query_terms, 10, Bm25Params::default())?;
 
 ### What is your corpus size?
 
-**< 100K documents (dense) or < 1M documents (BM25)** → `rank-retrieve` is suitable
+**Any scale** → `rank-retrieve` is suitable for in-memory retrieval
 
-**> 100K documents (dense) or > 1M documents (BM25)** → Use production backends:
+**Need persistent storage or distributed systems** → Use production backends:
 - BM25: `tantivy` with optimized indexing
 - Dense: `hnsw`, `faiss`, `qdrant`
 
@@ -298,9 +299,10 @@ let results = index.retrieve(&query_terms, 10, Bm25Params::default())?;
 
 **Use `rank-retrieve` when:**
 - Building IR pipelines with multiple retrieval methods
-- Corpus size is small-medium (<1M for BM25, <100K for dense)
+- Any scale of corpora (from small to very large)
 - In-memory storage is acceptable
 - Need integration with `rank-*` ecosystem
+- Production systems that can fit data in memory
 - Prototyping or research applications
 
 **Use alternatives when:**

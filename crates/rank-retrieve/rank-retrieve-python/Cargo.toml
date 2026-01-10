@@ -9,6 +9,7 @@ authors.workspace = true
 [lib]
 name = "rank_retrieve"
 crate-type = ["cdylib"]
+doc = false
 
 [dependencies]
 rank-retrieve = { path = ".." }

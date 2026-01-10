@@ -4,11 +4,27 @@
 //! followed by MaxSim reranking. Research shows this pipeline often matches
 //! PLAID's efficiency-effectiveness trade-off (MacAvaney & Tonellotto, SIGIR 2024).
 //!
-//! This example shows:
-//! 1. BM25 retrieval for first-stage candidate generation
-//! 2. MaxSim reranking for token-level matching
-//! 3. Token pooling for storage optimization
-//! 4. Integration with rank-fusion and rank-eval
+//! **What is Late Interaction?**
+//! Late interaction (ColBERT-style) computes token-level similarities between
+//! query and document tokens, then aggregates (MaxSim) for final scoring.
+//! This enables fine-grained matching without the quadratic complexity of
+//! cross-encoders.
+//!
+//! **Pipeline stages:**
+//! 1. **BM25 retrieval** (rank-retrieve): Fast first-stage retrieval from large corpus
+//! 2. **MaxSim reranking** (rank-rerank): Token-level matching for precision
+//! 3. **Token pooling** (optional): Storage optimization for large corpora
+//! 4. **Evaluation** (rank-eval): Quality metrics (nDCG, MRR, etc.)
+//!
+//! **When to use:**
+//! - Need high-quality retrieval with token-level matching
+//! - Want to balance speed (BM25) and precision (MaxSim)
+//! - Working with text-only or multimodal (ColPali) retrieval
+//!
+//! **Performance:**
+//! - BM25: ~1ms for 10M docs → 1000 candidates
+//! - MaxSim: ~10-50ms for 1000 candidates → 100 results
+//! - Total: ~11-51ms per query (vs. 100-500ms for cross-encoder)
 
 use rank_eval::binary::ndcg_at_k;
 use rank_fusion::rrf;

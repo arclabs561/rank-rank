@@ -39,11 +39,12 @@ pub trait AutoregressiveModel {
 /// Mock autoregressive model for testing and benchmarking.
 ///
 /// Returns simple identifiers based on query keywords.
+#[derive(Default)]
 pub struct MockAutoregressiveModel;
 
 impl MockAutoregressiveModel {
     pub fn new() -> Self {
-        Self {}
+        Self
     }
 }
 

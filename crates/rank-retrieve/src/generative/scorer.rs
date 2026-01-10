@@ -91,6 +91,7 @@ impl HeuristicScorer {
 
         // Normalize passage (case-insensitive and optionally Unicode normalization)
         let passage_normalized = {
+            #[allow(unused_mut)]
             let mut normalized = if self.case_insensitive {
                 passage.to_lowercase()
             } else {
@@ -116,6 +117,7 @@ impl HeuristicScorer {
 
             // Normalize identifier (case-insensitive and optionally Unicode normalization)
             let identifier_normalized = {
+                #[allow(unused_mut)]
                 let mut normalized = if self.case_insensitive {
                     identifier.to_lowercase()
                 } else {
@@ -252,8 +254,8 @@ impl HeuristicScorer {
             })
             .collect();
 
-        // Sort by score (descending)
-        passage_scores.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
+        // Sort by score (descending) (unstable for better performance)
+        passage_scores.sort_unstable_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
 
         passage_scores
     }
@@ -268,6 +270,7 @@ impl HeuristicScorer {
     ) -> Vec<(String, f32)> {
         // Normalize passage (case-insensitive and optionally Unicode normalization)
         let passage_normalized = {
+            #[allow(unused_mut)]
             let mut normalized = if self.case_insensitive {
                 passage.to_lowercase()
             } else {
@@ -292,6 +295,7 @@ impl HeuristicScorer {
 
             // Normalize identifier (case-insensitive and optionally Unicode normalization)
             let identifier_normalized = {
+                #[allow(unused_mut)]
                 let mut normalized = if self.case_insensitive {
                     identifier.to_lowercase()
                 } else {

@@ -12,12 +12,17 @@
 //! The types are generic over ID types (String, &str, u32, u64) to work with
 //! different crates' result formats.
 
+// Many helpers are provided for future tests - allow unused code
+#![allow(dead_code)]
+
 #[cfg(feature = "bm25")]
 use rank_retrieve::bm25::{Bm25Params, InvertedIndex};
 #[cfg(feature = "dense")]
 use rank_retrieve::dense::DenseRetriever;
 #[cfg(feature = "sparse")]
-use rank_retrieve::sparse::{SparseRetriever, SparseVector};
+use rank_retrieve::sparse::SparseRetriever;
+#[cfg(feature = "sparse")]
+use rank_retrieve::sparse::SparseVector;
 use std::collections::HashSet;
 use std::fmt::Display;
 
@@ -223,6 +228,7 @@ pub struct TestQuery {
     pub terms: Vec<String>,
     pub query_type: QueryType,
     pub dense_embedding: Option<Vec<f32>>,
+    #[cfg(feature = "sparse")]
     pub sparse_vector: Option<SparseVector>,
 }
 
@@ -234,6 +240,7 @@ impl TestQuery {
             query_type: QueryType::Lexical,
             terms,
             dense_embedding: None,
+            #[cfg(feature = "sparse")]
             sparse_vector: None,
         }
     }
@@ -245,6 +252,7 @@ impl TestQuery {
             query_type: QueryType::Short,
             terms,
             dense_embedding: None,
+            #[cfg(feature = "sparse")]
             sparse_vector: None,
         }
     }
@@ -256,6 +264,7 @@ impl TestQuery {
             query_type: QueryType::Long,
             terms,
             dense_embedding: None,
+            #[cfg(feature = "sparse")]
             sparse_vector: None,
         }
     }
@@ -487,7 +496,7 @@ pub fn results_to_trec_runs<ID: Display>(
 // Property-Based Testing Helpers (for proptest integration)
 // ─────────────────────────────────────────────────────────────────────────────
 
-#[cfg(feature = "proptest")]
+#[cfg(test)]
 pub mod proptest_helpers {
     use super::*;
     use proptest::prelude::*;

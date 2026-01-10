@@ -2,7 +2,7 @@
 
 ## Overview
 
-This guide explains how to use `rank-retrieve` with `rank-rerank` for late interaction retrieval (ColBERT-style token-level matching). It synthesizes the latest research (2024-2025) to provide evidence-based guidance.
+This guide explains how to use `rank-retrieve` with `rank-rerank` for late interaction retrieval (ColBERT/ColPali-style token-level matching). It synthesizes the latest research (2024-2025) to provide evidence-based guidance. Supports both text (ColBERT) and multimodal (ColPali) late interaction.
 
 **All code examples in this guide are validated by tests** in `tests/integration_doc_tests.rs` and `tests/executable_docs_tests.rs`.
 
@@ -18,7 +18,7 @@ Late interaction models (like ColBERT) keep **one vector per token** instead of 
 
 ### Standard Approach (Most Use Cases)
 
-Research shows that **BM25 + ColBERT reranking** often matches PLAID's efficiency-effectiveness trade-off (MacAvaney & Tonellotto, SIGIR 2024).
+Research shows that **BM25 + ColBERT/ColPali reranking** often matches PLAID's efficiency-effectiveness trade-off (MacAvaney & Tonellotto, SIGIR 2024). This pipeline works for both text-only (ColBERT) and multimodal (ColPali) retrieval.
 
 ```rust
 use rank_retrieve::{retrieve_bm25, bm25::{Bm25Params, InvertedIndex}};
@@ -47,7 +47,7 @@ let pooled_docs: Vec<_> = doc_tokens.iter()
 
 ### Why This Works
 
-**Research finding**: The BM25 + ColBERT reranking pipeline provides excellent efficiency-effectiveness trade-offs because:
+**Research finding**: The BM25 + ColBERT/ColPali reranking pipeline provides excellent efficiency-effectiveness trade-offs because:
 
 1. **BM25 provides good recall**: Lexical matching retrieves most relevant documents
 2. **MaxSim reranking improves precision**: Token-level matching refines the ranking
@@ -169,6 +169,46 @@ let score = colbert::maxsim(&query_tokens, &pooled_doc);
 
 **When to use:** Alternative to PLAID when simpler approach is preferred
 
+### Multimodal Retrieval (ColPali)
+
+The same pipeline works for multimodal retrieval (text-to-image):
+
+```rust
+use rank_retrieve::{retrieve_bm25, bm25::{Bm25Params, InvertedIndex}};
+use rank_rerank::colbert;
+
+// 1. First-stage retrieval: BM25 on document text (if available) or metadata
+let mut index = InvertedIndex::new();
+// ... add document text/metadata to index ...
+let candidates = retrieve_bm25(&index, &query_terms, 1000, Bm25Params::default())?;
+
+// 2. Rerank with ColPali (text query tokens vs image patch embeddings)
+// In ColPali, document images are split into patches (e.g., 32×32 grid = 1024 patches)
+// Each patch becomes a "token" embedding
+let doc_image_patches: Vec<(&str, Vec<Vec<f32>>)> = candidates.iter()
+    .map(|(id, _)| (*id, get_image_patch_embeddings(*id))) // Your function to get patch embeddings
+    .collect();
+
+let query_tokens = encode_query_text(&query_text)?; // Text query tokens
+let reranked = colbert::rank(&query_tokens, &doc_image_patches);
+
+// 3. Visual snippet extraction: identify which image patches match query tokens
+let alignments = colbert::alignments(&query_tokens, &doc_image_patches[0].1);
+// Use alignments to extract visual regions from document images
+```
+
+**ColPali vs ColBERT:**
+- **ColBERT**: Text-to-text late interaction (query text tokens vs document text tokens)
+- **ColPali**: Text-to-image late interaction (query text tokens vs image patch embeddings)
+- **Same MaxSim algorithm**: Both use the same token-level matching, just different input modalities
+
+**When to use ColPali:**
+- Document image retrieval (PDFs, scanned documents, screenshots)
+- Visual search where text metadata is limited
+- Multimodal RAG pipelines combining text and images
+
+See `rank-rerank`'s [multimodal documentation](../rank-rerank/rank-rerank-core/README.md#multimodal-support-colpali) for details.
+
 ## Best Practices
 
 ### 1. Use BM25 for First-Stage Retrieval
@@ -221,9 +261,14 @@ let fused = rrf(&bm25_results, &dense_results);
 
 4. **SPLATE**: "SPLATE: Sparse Late Interaction Retrieval" (SIGIR 2024). Simpler alternative to PLAID.
 
+5. **ColPali**: "ColPali: Efficient Document Retrieval with Vision Language Models" (ICLR 2025). [arXiv:2407.01449](https://arxiv.org/abs/2407.01449). Multimodal late interaction for document images.
+
 ## See Also
 
 - `rank-rerank`'s [PLAID and Optimization Guide](../rank-rerank/docs/PLAID_AND_OPTIMIZATION.md) for detailed research analysis
 - `rank-retrieve`'s [PLAID Analysis](PLAID_ANALYSIS.md) for comprehensive PLAID overview
 - `rank-rerank`'s [ColBERT Documentation](../rank-rerank/src/colbert.rs) for MaxSim implementation details
+- `rank-rerank`'s [Multimodal Support](../rank-rerank/rank-rerank-core/README.md#multimodal-support-colpali) for ColPali usage
+- `rank-retrieve`'s [Refinement Techniques](REFINEMENT_TECHNIQUES.md) for Matryoshka, ColBERT, and cross-encoder refinement
+- `rank-retrieve`'s [ColPali Multimodal Example](../examples/colpali_multimodal_pipeline.rs) for complete ColPali pipeline
 

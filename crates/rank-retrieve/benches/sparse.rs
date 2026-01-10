@@ -1,10 +1,12 @@
 //! Sparse retrieval benchmarks.
 //!
-//! Compares sparse vector dot product performance.
+//! Compares sparse vector dot product performance with and without SIMD acceleration.
 
 use criterion::{black_box, criterion_group, criterion_main, BenchmarkId, Criterion};
 use rank_retrieve::sparse::SparseRetriever;
 use rank_retrieve::sparse::SparseVector;
+#[cfg(any(feature = "dense", feature = "sparse"))]
+use rank_retrieve::simd;
 
 fn generate_sparse_vectors(n_docs: usize, vocab_size: usize, sparsity: f32) -> Vec<SparseVector> {
     (0..n_docs)
@@ -158,5 +160,62 @@ fn bench_scoring(c: &mut Criterion) {
     group.finish();
 }
 
+#[cfg(any(feature = "dense", feature = "sparse"))]
+fn bench_simd_vs_scalar(c: &mut Criterion) {
+    let mut group = c.benchmark_group("sparse_simd_comparison");
+
+    for (vocab_size, sparsity) in [(1000, 0.1), (10000, 0.05), (100000, 0.01), (1000000, 0.005)].iter() {
+        let n_nonzero = (*vocab_size as f32 * *sparsity) as usize;
+        
+        // Generate sparse vectors
+        let mut a_indices: Vec<u32> = (0..*vocab_size as u32).collect();
+        for i in 0..n_nonzero {
+            let j = (i * 7 + 13) % *vocab_size;
+            a_indices.swap(i, j);
+        }
+        let a_indices: Vec<u32> = a_indices[..n_nonzero].to_vec();
+        let a_values: Vec<f32> = (0..n_nonzero)
+            .map(|i| ((i * 11) % 100) as f32 / 100.0)
+            .collect();
+
+        let mut b_indices: Vec<u32> = (0..*vocab_size as u32).collect();
+        for i in 0..n_nonzero {
+            let j = (i * 17 + 19) % *vocab_size;
+            b_indices.swap(i, j);
+        }
+        let b_indices: Vec<u32> = b_indices[..n_nonzero].to_vec();
+        let b_values: Vec<f32> = (0..n_nonzero)
+            .map(|i| ((i * 13) % 100) as f32 / 100.0)
+            .collect();
+
+        // Benchmark SIMD-accelerated dot product
+        group.bench_with_input(
+            BenchmarkId::new("dot_simd", format!("vocab{}_sparse{}", vocab_size, sparsity)),
+            &(&a_indices, &a_values, &b_indices, &b_values),
+            |b, (ai, av, bi, bv)| {
+                b.iter(|| {
+                    let _ = black_box(simd::sparse_dot(ai, av, bi, bv));
+                })
+            },
+        );
+
+        // Benchmark portable (scalar) dot product for comparison
+        group.bench_with_input(
+            BenchmarkId::new("dot_portable", format!("vocab{}_sparse{}", vocab_size, sparsity)),
+            &(&a_indices, &a_values, &b_indices, &b_values),
+            |b, (ai, av, bi, bv)| {
+                b.iter(|| {
+                    let _ = black_box(simd::sparse_dot_portable(ai, av, bi, bv));
+                })
+            },
+        );
+    }
+
+    group.finish();
+}
+
+#[cfg(any(feature = "dense", feature = "sparse"))]
+criterion_group!(benches, bench_indexing, bench_retrieval, bench_scoring, bench_simd_vs_scalar);
+#[cfg(not(any(feature = "dense", feature = "sparse")))]
 criterion_group!(benches, bench_indexing, bench_retrieval, bench_scoring);
 criterion_main!(benches);

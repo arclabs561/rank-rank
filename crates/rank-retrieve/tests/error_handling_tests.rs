@@ -4,7 +4,7 @@
 
 #[cfg(test)]
 mod tests {
-    use rank_retrieve::bm25::{Bm25Params, InvertedIndex};
+    use rank_retrieve::bm25::{Bm25Params, Bm25Variant, InvertedIndex};
     use rank_retrieve::dense::DenseRetriever;
     use rank_retrieve::sparse::SparseRetriever;
     use rank_retrieve::sparse::SparseVector;
@@ -250,7 +250,7 @@ mod tests {
         );
 
         // Extreme k1 parameter
-        let params_high_k1 = Bm25Params { k1: 100.0, b: 0.75 };
+        let params_high_k1 = Bm25Params { k1: 100.0, b: 0.75, variant: Bm25Variant::Standard };
         let result = index.retrieve(
             &["test"].iter().map(|s| s.to_string()).collect::<Vec<_>>(),
             10,
@@ -259,7 +259,7 @@ mod tests {
         assert!(result.is_ok());
 
         // Extreme b parameter
-        let params_high_b = Bm25Params { k1: 1.2, b: 1.0 };
+        let params_high_b = Bm25Params { k1: 1.2, b: 1.0, variant: Bm25Variant::Standard };
         let result = index.retrieve(
             &["test"].iter().map(|s| s.to_string()).collect::<Vec<_>>(),
             10,

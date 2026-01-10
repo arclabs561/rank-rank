@@ -16,8 +16,21 @@ use crate::RetrieveError;
 pub use self::vector::{dot_product, SparseVector};
 
 /// Sparse retriever using sparse vector dot products.
+///
+/// # Performance Optimizations
+///
+/// - **Early termination**: Uses min-heap for k << num_documents (avoids full sort)
+/// - **SIMD acceleration**: Sparse dot product uses SIMD for index comparison
+/// - **Cache-friendly**: Documents stored in Vec for better cache locality
+///
+/// # Memory Characteristics
+///
+/// - Stores sparse vectors (only non-zero terms)
+/// - Memory usage: O(|D| × avg_sparsity × vocab_size)
+/// - For learned sparse (SPLADE): ~30K dimensions per document
 pub struct SparseRetriever {
     /// Document ID -> Sparse Vector
+    /// Using Vec for better cache locality and iteration performance
     documents: Vec<(u32, SparseVector)>,
 }
 
@@ -35,8 +48,27 @@ impl SparseRetriever {
     ///
     /// * `doc_id` - Document identifier
     /// * `vector` - Sparse vector representation (indices = term IDs, values = term weights)
+    ///
+    /// # Performance
+    ///
+    /// O(1) amortized. The vector is stored as-is; no preprocessing required.
+    /// For learned sparse vectors (SPLADE), consider using `top_k()` to reduce
+    /// memory usage (typically keep top 200-500 terms).
     pub fn add_document(&mut self, doc_id: u32, vector: SparseVector) {
         self.documents.push((doc_id, vector));
+    }
+
+    /// Get the number of documents in the index.
+    pub fn num_docs(&self) -> usize {
+        self.documents.len()
+    }
+
+    /// Get a document's sparse vector by ID.
+    pub fn get_document(&self, doc_id: u32) -> Option<&SparseVector> {
+        self.documents
+            .iter()
+            .find(|(id, _)| *id == doc_id)
+            .map(|(_, vector)| vector)
     }
 
     /// Score a document against a query using dot product.
@@ -71,6 +103,12 @@ impl SparseRetriever {
     ///
     /// Returns `RetrieveError::EmptyQuery` if query vector is empty.
     /// Returns `RetrieveError::EmptyIndex` if index has no documents.
+    ///
+    /// # Performance
+    ///
+    /// Uses early termination optimization: maintains top-k heap during scoring
+    /// to avoid full sort when k << num_documents. For k >= num_documents, uses
+    /// full sort (more efficient for large k).
     pub fn retrieve(
         &self,
         query_vector: &SparseVector,
@@ -84,20 +122,75 @@ impl SparseRetriever {
             return Err(RetrieveError::EmptyIndex);
         }
 
-        let mut scored: Vec<(u32, f32)> = self
-            .documents
-            .iter()
-            .map(|(doc_id, doc_vector)| {
+        // Handle k=0 case
+        if k == 0 {
+            return Ok(Vec::new());
+        }
+
+        // Early termination optimization: use heap for k << num_documents
+        if k < self.documents.len() / 2 {
+            // Use min-heap for top-k (more efficient for small k)
+            // Note: f32 doesn't implement Ord due to NaN, so we use a wrapper
+            use std::cmp::Reverse;
+            use std::collections::BinaryHeap;
+
+            #[derive(PartialEq)]
+            struct FloatOrd(f32);
+            impl Eq for FloatOrd {}
+            impl PartialOrd for FloatOrd {
+                fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+                    Some(self.cmp(other))
+                }
+            }
+            impl Ord for FloatOrd {
+                fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+                    self.0.partial_cmp(&other.0).unwrap_or(std::cmp::Ordering::Equal)
+                }
+            }
+
+            let mut heap: BinaryHeap<Reverse<(FloatOrd, u32)>> = BinaryHeap::with_capacity(k + 1);
+
+            for (doc_id, doc_vector) in &self.documents {
                 let score = dot_product(query_vector, doc_vector);
-                (*doc_id, score)
-            })
-            .collect();
+                
+                // Filter out NaN, Infinity, and non-positive scores
+                if score.is_finite() && score > 0.0 {
+                    if heap.len() < k {
+                        heap.push(Reverse((FloatOrd(score), *doc_id)));
+                    } else if let Some(&Reverse((FloatOrd(min_score), _))) = heap.peek() {
+                        if score > min_score {
+                            heap.pop();
+                            heap.push(Reverse((FloatOrd(score), *doc_id)));
+                        }
+                    }
+                }
+            }
 
-        // Sort by score descending
-        scored.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
+            // Extract and reverse sort
+            let mut results: Vec<(u32, f32)> = heap
+                .into_iter()
+                .map(|Reverse((FloatOrd(score), doc_id))| (doc_id, score))
+                .collect();
+            results.sort_unstable_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
+            Ok(results)
+        } else {
+            // Full sort for large k (more efficient)
+            let mut scored: Vec<(u32, f32)> = self
+                .documents
+                .iter()
+                .map(|(doc_id, doc_vector)| {
+                    let score = dot_product(query_vector, doc_vector);
+                    (*doc_id, score)
+                })
+                .filter(|(_, score)| score.is_finite() && *score > 0.0)
+                .collect();
 
-        // Return top-k
-        Ok(scored.into_iter().take(k).collect())
+            // Sort by score descending
+            scored.sort_unstable_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
+
+            // Return top-k
+            Ok(scored.into_iter().take(k).collect())
+        }
     }
 }
 
@@ -112,7 +205,8 @@ impl crate::retriever::Retriever for SparseRetriever {
     type Query = SparseVector;
 
     fn retrieve(&self, query: &Self::Query, k: usize) -> Result<Vec<(u32, f32)>, RetrieveError> {
-        self.retrieve(query, k)
+        // Use fully qualified syntax to call the inherent method, not the trait method
+        SparseRetriever::retrieve(self, query, k)
     }
 }
 

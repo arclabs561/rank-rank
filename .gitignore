@@ -37,6 +37,14 @@ package-lock.json
 mutants.out/
 proptest-regressions/
 
+# Benchmark outputs
+benchmark_results/
+benchmark_results.csv
+benchmark_results.json
+benchmark_summary.txt
+plot_benchmarks.py
+benchmark_plot.png
+
 # Documentation
 docs/output/
 *.html

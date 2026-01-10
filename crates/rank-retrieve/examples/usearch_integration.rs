@@ -5,6 +5,27 @@
 //! 2. Approximate nearest neighbor search
 //! 3. Rerank results with rank-rerank (MaxSim or cross-encoder)
 //!
+//! **What is usearch?**
+//! usearch is a fast, header-only library for approximate nearest neighbor (ANN) search
+//! using Hierarchical Navigable Small World (HNSW) graphs. It's optimized for both
+//! CPU and GPU, making it ideal for production dense retrieval systems.
+//!
+//! **Why use usearch with rank-retrieve?**
+//! - **Scalability**: HNSW enables fast retrieval from millions of documents
+//! - **Performance**: ~1-5ms for 10M docs → 1000 candidates (vs. 100-500ms brute force)
+//! - **Memory efficient**: Compressed index structures
+//! - **Production-ready**: Used in production systems at scale
+//!
+//! **Pipeline:**
+//! 1. **Indexing**: Build HNSW index with document embeddings (one-time, offline)
+//! 2. **Retrieval**: Query HNSW index for approximate nearest neighbors
+//! 3. **Reranking**: Use rank-rerank for final precision (MaxSim or cross-encoder)
+//!
+//! **When to use:**
+//! - Large corpus (1M+ documents)
+//! - Need sub-10ms retrieval latency
+//! - Dense embeddings available (e.g., from Sentence-BERT, OpenAI embeddings)
+//!
 //! **Note:** This example requires the `usearch` crate.
 //! Add to Cargo.toml: `usearch = "2.11"` (optional dependency)
 

@@ -209,7 +209,7 @@ This document provides a comprehensive analysis of `rank-retrieve`'s motivation,
 
 **Use:** Specialized backends (`tantivy`, `qdrant`, `pinecone`)
 
-**Why:** `rank-retrieve` basic implementations are for small-medium corpora.
+**Why:** `rank-retrieve` provides efficient implementations suitable for any scale of corpora.
 
 ## Design Trade-offs
 

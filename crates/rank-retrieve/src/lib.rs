@@ -13,14 +13,15 @@
 //! # Design Philosophy
 //!
 //! This crate focuses on **first-stage retrieval** as a component in IR pipelines.
-//! It provides basic implementations suitable for small-medium corpora and prototyping.
-//! For large scale, integrate with specialized libraries (Tantivy, HNSW, FAISS).
+//! It provides implementations suitable for any scale of corpora, from small prototypes
+//! to large-scale production systems.
 //!
 //! **Key characteristics:**
 //! - In-memory indexes (no persistence)
-//! - Basic implementations (not optimized for large scale)
+//! - Efficient implementations with SIMD acceleration
 //! - Unified API for multiple retrieval methods
 //! - Designed for integration with `rank-*` ecosystem
+//! - Scales from small to very large corpora
 //!
 //! **Value proposition:**
 //! - Multiple retrieval methods in one crate (BM25, dense, sparse, generative)
@@ -34,17 +35,21 @@
 //!
 //! # Features
 //!
-//! - **BM25 Retrieval**: Inverted index with Okapi BM25 scoring
+//! - **BM25 Retrieval**: Inverted index with Okapi BM25 scoring (supports BM25L and BM25+ variants)
+//! - **TF-IDF Retrieval**: Inverted index with TF-IDF scoring (linear/log TF, standard/smoothed IDF)
+//! - **Query Expansion / PRF**: Pseudo-relevance feedback to improve recall (addresses vocabulary mismatch)
+//! - **Query Likelihood**: Probabilistic retrieval using language models (Jelinek-Mercer, Dirichlet smoothing)
 //! - **Dense ANN**: Cosine similarity-based retrieval (ready for HNSW/FAISS integration)
 //! - **Sparse Retrieval**: Lexical matching using sparse vectors
 //! - **Generative Retrieval (LTRGR)**: Autoregressive models generate identifiers for passages
 //!
-//! **Note on Late Interaction**: For ColBERT-style late interaction retrieval (token-level
+//! **Note on Late Interaction**: For ColBERT/ColPali-style late interaction retrieval (token-level
 //! matching), use `rank-retrieve` for first-stage retrieval (BM25/dense) followed by
 //! `rank-rerank` for MaxSim reranking. Research shows this pipeline often matches PLAID's
 //! efficiency-effectiveness trade-off (MacAvaney & Tonellotto, SIGIR 2024).
 //! See `rank-rerank`'s `PLAID_AND_OPTIMIZATION.md` for details and
 //! [ACM DL](https://dl.acm.org/doi/10.1145/3626772.3657856) for the paper.
+//! Supports both text (ColBERT) and multimodal (ColPali) late interaction.
 //!
 //! # Example: Late Interaction Pipeline
 //!
@@ -95,7 +100,21 @@
 /// Provides inverted index and Okapi BM25 scoring.
 ///
 /// Implementations are available when `bm25` feature is enabled.
+///
+/// # Eager Scoring
+///
+/// For query-heavy workloads, see `bm25::eager::EagerBm25Index` for precomputed
+/// scores (500x faster retrieval, 2-3x larger memory).
 pub mod bm25;
+
+/// TF-IDF retrieval module.
+///
+/// Provides TF-IDF (Term Frequency-Inverse Document Frequency) scoring for first-stage retrieval.
+/// Reuses the BM25 inverted index structure with simpler scoring formula.
+///
+/// Implementations are available when `tfidf` feature is enabled.
+#[cfg(feature = "tfidf")]
+pub mod tfidf;
 
 /// Dense approximate nearest neighbor search.
 ///
@@ -104,6 +123,15 @@ pub mod bm25;
 ///
 /// Implementations are available when `dense` feature is enabled.
 pub mod dense;
+
+/// SIMD-accelerated vector operations.
+///
+/// Provides optimized dot product, cosine similarity, and sparse dot product using SIMD instructions.
+/// Automatically selects the fastest available instruction set (AVX-512, AVX2, NEON).
+///
+/// Available when `dense` or `sparse` feature is enabled.
+#[cfg(any(feature = "dense", feature = "sparse"))]
+pub mod simd;
 
 /// Sparse retrieval module.
 ///
@@ -116,6 +144,12 @@ pub mod sparse;
 ///
 /// Provides efficient batch processing for multiple queries.
 pub mod batch;
+
+/// Filtering support for vector search.
+///
+/// Provides filter predicates, metadata storage, post-filtering, filter fusion,
+/// and integrated filtering strategies.
+pub mod filtering;
 
 /// Query routing framework (LTRR-style).
 ///
@@ -136,6 +170,23 @@ pub mod generative;
 
 /// Error types for retrieval operations.
 pub mod error;
+
+/// Lossless compression for vector IDs in ANN indexes.
+///
+/// Provides compression algorithms that exploit ordering invariance in vector ID
+/// collections (IVF clusters, HNSW neighbor lists) to achieve significant compression
+/// ratios (5-7x for large sets).
+///
+/// See `compression` module documentation for details.
+#[cfg(feature = "id-compression")]
+pub mod compression;
+
+/// Disk persistence for retrieval indexes.
+///
+/// Provides crash-safe, concurrent persistence for all retrieval methods.
+/// See `persistence` module documentation and `docs/PERSISTENCE_DESIGN.md` for details.
+#[cfg(feature = "persistence")]
+pub mod persistence;
 
 /// Unified retriever trait interface.
 ///
@@ -158,6 +209,30 @@ pub mod retriever;
 /// For large scale, implement this trait for your chosen backend (Tantivy,
 /// HNSW, FAISS, Qdrant, Pinecone, etc.).
 pub mod integration;
+
+/// Query expansion and pseudo-relevance feedback (PRF).
+///
+/// Provides query expansion techniques to improve recall by reformulating queries
+/// with semantically related terms extracted from top-ranked documents.
+///
+/// Implementations are available when `query-expansion` feature is enabled.
+#[cfg(feature = "query-expansion")]
+pub mod query_expansion;
+
+/// Query likelihood language model retrieval.
+///
+/// Provides probabilistic retrieval using language models, ranking documents by
+/// the probability that the document's language model generated the query: P(Q|D).
+///
+/// Implementations are available when `query-likelihood` feature is enabled.
+#[cfg(feature = "query-likelihood")]
+pub mod query_likelihood;
+
+/// Standard ANN benchmarking utilities following ann-benchmarks methodology.
+///
+/// Provides utilities for benchmarking ANN algorithms following the structure
+/// and metrics from ann-benchmarks (erikbern/ann-benchmarks).
+pub mod benchmark;
 
 pub use error::RetrieveError;
 
@@ -239,6 +314,98 @@ pub fn retrieve_sparse(
     retriever.retrieve(query, k)
 }
 
+/// Three-way retrieval: Combine BM25, dense, and sparse retrieval.
+///
+/// Research shows that combining full-text (BM25), dense, and sparse retrieval
+/// provides optimal results for RAG applications. This function retrieves from
+/// all three methods and returns separate result lists for fusion.
+///
+/// # Arguments
+///
+/// * `bm25_index` - BM25 inverted index (full-text search)
+/// * `dense_retriever` - Dense retriever (semantic search)
+/// * `sparse_retriever` - Sparse retriever (learned sparse, e.g., SPLADE)
+/// * `query_terms` - Query terms for BM25
+/// * `query_embedding` - Query embedding for dense retrieval
+/// * `query_sparse` - Query sparse vector for sparse retrieval
+/// * `k` - Number of candidates to retrieve from each method
+/// * `bm25_params` - BM25 parameters
+///
+/// # Returns
+///
+/// Tuple of (bm25_results, dense_results, sparse_results) for fusion
+///
+/// # Example
+///
+/// ```rust,no_run
+/// use rank_retrieve::retrieve_three_way;
+/// use rank_retrieve::bm25::{Bm25Params, InvertedIndex};
+/// use rank_retrieve::dense::DenseRetriever;
+/// use rank_retrieve::sparse::{SparseRetriever, SparseVector};
+///
+/// let bm25_index = InvertedIndex::new();
+/// let dense_retriever = DenseRetriever::new();
+/// let sparse_retriever = SparseRetriever::new();
+///
+/// let (bm25_results, dense_results, sparse_results) = retrieve_three_way(
+///     &bm25_index,
+///     &dense_retriever,
+///     &sparse_retriever,
+///     &["query".to_string()],
+///     &[0.1; 128],
+///     &SparseVector::new_unchecked(vec![0], vec![1.0]),
+///     1000,
+///     Bm25Params::default(),
+/// ).unwrap();
+///
+/// // Fuse results using rank-fusion
+/// ```
+#[cfg(all(feature = "bm25", feature = "dense", feature = "sparse"))]
+pub fn retrieve_three_way(
+    bm25_index: &crate::bm25::InvertedIndex,
+    dense_retriever: &crate::dense::DenseRetriever,
+    sparse_retriever: &crate::sparse::SparseRetriever,
+    query_terms: &[String],
+    query_embedding: &[f32],
+    query_sparse: &crate::sparse::SparseVector,
+    k: usize,
+    bm25_params: crate::bm25::Bm25Params,
+) -> Result<(Vec<(u32, f32)>, Vec<(u32, f32)>, Vec<(u32, f32)>), RetrieveError> {
+    let bm25_results = retrieve_bm25(bm25_index, query_terms, k, bm25_params)?;
+    let dense_results = retrieve_dense(dense_retriever, query_embedding, k)?;
+    let sparse_results = retrieve_sparse(sparse_retriever, query_sparse, k)?;
+    Ok((bm25_results, dense_results, sparse_results))
+}
+
+/// Retrieve top-k documents using TF-IDF scoring.
+///
+/// TF-IDF is a simpler alternative to BM25, providing baseline lexical retrieval.
+/// Reuses the BM25 inverted index structure.
+///
+/// # Example
+///
+/// ```rust
+/// use rank_retrieve::retrieve_tfidf;
+/// use rank_retrieve::bm25::InvertedIndex;
+/// use rank_retrieve::tfidf::TfIdfParams;
+///
+/// let mut index = InvertedIndex::new();
+/// index.add_document(0, &["machine".to_string(), "learning".to_string()]);
+///
+/// let query = vec!["machine".to_string()];
+/// let results = retrieve_tfidf(&index, &query, 10, TfIdfParams::default()).unwrap();
+/// assert!(!results.is_empty());
+/// ```
+#[cfg(feature = "tfidf")]
+pub fn retrieve_tfidf(
+    index: &crate::bm25::InvertedIndex,
+    query: &[String],
+    k: usize,
+    params: crate::tfidf::TfIdfParams,
+) -> Result<Vec<(u32, f32)>, RetrieveError> {
+    crate::tfidf::retrieve_tfidf(index, query, k, params)
+}
+
 /// Re-export commonly used types.
 pub mod prelude {
     // Core types (always available)
@@ -247,6 +414,12 @@ pub mod prelude {
     // Concrete retrieval functions (primary API)
     #[cfg(feature = "bm25")]
     pub use crate::retrieve_bm25;
+    #[cfg(feature = "tfidf")]
+    pub use crate::retrieve_tfidf;
+    #[cfg(feature = "query-expansion")]
+    pub use crate::query_expansion::{expand_query_with_prf_bm25, ExpansionMethod, QueryExpander};
+    #[cfg(feature = "query-likelihood")]
+    pub use crate::query_likelihood::{retrieve_query_likelihood, QueryLikelihoodParams, SmoothingMethod};
     #[cfg(feature = "dense")]
     pub use crate::retrieve_dense;
     #[cfg(feature = "sparse")]
@@ -254,7 +427,9 @@ pub mod prelude {
 
     // Feature-gated implementations
     #[cfg(feature = "bm25")]
-    pub use crate::bm25::{Bm25Params, InvertedIndex};
+    pub use crate::bm25::{Bm25Params, Bm25Variant, InvertedIndex};
+    #[cfg(feature = "tfidf")]
+    pub use crate::tfidf::{TfIdfParams, TfVariant, IdfVariant};
     #[cfg(feature = "dense")]
     pub use crate::dense::DenseRetriever;
     #[cfg(feature = "generative")]

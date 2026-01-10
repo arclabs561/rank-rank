@@ -15,9 +15,15 @@ mod tests {
     use rank_rerank::explain::{rerank_batch, Candidate, RerankMethod, RerankerInput};
     use rank_retrieve::batch;
     use rank_retrieve::bm25::{Bm25Params, InvertedIndex};
+    #[cfg(feature = "dense")]
     use rank_retrieve::dense::DenseRetriever;
+    #[cfg(feature = "sparse")]
     use rank_retrieve::sparse::{SparseRetriever, SparseVector};
-    use rank_retrieve::{retrieve_bm25, retrieve_dense, retrieve_sparse};
+    use rank_retrieve::retrieve_bm25;
+    #[cfg(feature = "dense")]
+    use rank_retrieve::retrieve_dense;
+    #[cfg(feature = "sparse")]
+    use rank_retrieve::retrieve_sparse;
     use std::collections::HashSet;
 
     #[test]

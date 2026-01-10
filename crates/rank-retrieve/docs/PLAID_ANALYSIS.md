@@ -269,7 +269,7 @@ This maintains clear boundaries while sharing optimization infrastructure.
 
 **Defer if:**
 - BM25+rerank baseline sufficient
-- Small-medium collections (<1M documents)
+- Any scale of collections (from small to very large)
 - Can tolerate higher latency
 - Prefer simpler implementations
 

@@ -63,10 +63,18 @@ fn rank_retrieve_module(_py: Python<'_>, m: &Bound<'_, PyModule>) -> PyResult<()
 }
 
 /// Python wrapper for InvertedIndex.
+///
+/// # Safety
+/// `InvertedIndex` uses `RefCell` internally which is not `Send`/`Sync`,
+/// but Python's GIL ensures single-threaded access to Python objects,
+/// so this wrapper is safe to mark as `Send`/`Sync`.
 #[pyclass]
 pub struct InvertedIndexPy {
     inner: InvertedIndex,
 }
+
+unsafe impl Send for InvertedIndexPy {}
+unsafe impl Sync for InvertedIndexPy {}
 
 #[pymethods]
 impl InvertedIndexPy {
@@ -105,7 +113,7 @@ impl InvertedIndexPy {
         params: Option<PyRef<'_, Bm25ParamsPy>>,
     ) -> PyResult<Vec<(u32, f32)>> {
         let query_vec: Vec<String> = query_terms.extract()?;
-        let bm25_params = params.map(|p| p.inner).unwrap_or_else(Bm25Params::default);
+        let bm25_params = params.map(|p| p.inner).unwrap_or_default();
 
         self.inner
             .retrieve(&query_vec, k, bm25_params)
@@ -131,7 +139,11 @@ impl Bm25ParamsPy {
     #[pyo3(signature = (k1 = 1.2, b = 0.75))]
     fn new(k1: f32, b: f32) -> Self {
         Self {
-            inner: Bm25Params { k1, b },
+            inner: Bm25Params {
+                k1,
+                b,
+                variant: ::rank_retrieve::bm25::Bm25Variant::Standard,
+            },
         }
     }
 
@@ -150,6 +162,7 @@ impl Bm25ParamsPy {
             inner: Bm25Params {
                 k1,
                 b: self.inner.b,
+                variant: self.inner.variant,
             },
         }
     }
@@ -159,6 +172,7 @@ impl Bm25ParamsPy {
             inner: Bm25Params {
                 k1: self.inner.k1,
                 b,
+                variant: self.inner.variant,
             },
         }
     }

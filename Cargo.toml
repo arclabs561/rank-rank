@@ -1,6 +1,16 @@
 [workspace]
-# Note: Each crate has its own workspace, so we don't include them here
-# This is just for shared dependencies. Individual crates manage their own workspaces.
+members = [
+    "crates/rank-retrieve",
+    "crates/rank-retrieve/rank-retrieve-python",
+    "crates/rank-fusion",
+    "crates/rank-fusion/rank-fusion-python",
+    "crates/rank-rerank",
+    "crates/rank-rerank/rank-rerank-python",
+    "crates/rank-soft",
+    "crates/rank-soft/rank-soft-python",
+    "crates/rank-eval",
+    "crates/rank-eval/rank-eval-python",
+]
 resolver = "2"
 
 [workspace.package]
@@ -22,6 +32,22 @@ arbitrary = { version = "1", features = ["derive"] }
 # rank-rerank specific
 kodama = "0.3"
 
-# Cross-crate dependencies (path-based for development)
-rank-soft = { path = "crates/rank-soft", package = "rank-soft" }
+# Cross-crate dependencies (path-based for development, with version for publishing)
+rank-soft = { path = "crates/rank-soft", version = "0.1", package = "rank-soft" }
 
+[workspace.lints.rust]
+unexpected_cfgs = { level = "warn", check-cfg = ['cfg(feature, values("rand", "pytorch", "tch", "numpy"))'] }
+
+[workspace.lints.clippy]
+# Allow explicit indexing in numeric code - matches mathematical formulas more clearly
+needless_range_loop = "allow"
+
+# Optimize WASM builds for smaller binary size
+# These settings reduce WASM binary size by 30-40% compared to defaults
+[profile.release]
+# Enable Link-Time Optimization for smaller binaries
+lto = true
+# Optimize for size (can use "s" for more aggressive size optimization)
+opt-level = "z"
+# Single codegen unit for better LTO
+codegen-units = 1

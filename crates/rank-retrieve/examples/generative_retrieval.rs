@@ -3,6 +3,26 @@
 //! This example demonstrates how to use generative retrieval for passage retrieval.
 //! Generative retrieval generates identifiers (titles, substrings, pseudo-queries)
 //! and maps them to passages using heuristic scoring.
+//!
+//! **What is Generative Retrieval?**
+//! Generative retrieval uses autoregressive models (like T5, GPT) to generate
+//! identifiers for relevant passages. Instead of traditional indexing, the model
+//! learns to map queries to passage identifiers directly.
+//!
+//! **LTRGR (Learning to Retrieve in One Pass):**
+//! - Generates multiple identifier types (titles, substrings, pseudo-queries)
+//! - Uses heuristic scoring to rank generated identifiers
+//! - Supports both training and inference modes
+//!
+//! **When to use:**
+//! - Need to retrieve from large corpora without traditional indexing
+//! - Want to leverage pre-trained language models for retrieval
+//! - Corpus changes frequently (no need to rebuild index)
+//!
+//! **Performance:**
+//! - Inference: ~10-50ms per query (depends on model size)
+//! - No indexing step required (unlike BM25/dense)
+//! - Memory efficient (no inverted index or embedding storage)
 
 use rank_retrieve::generative::{
     AutoregressiveModel, GenerativeRetriever, HeuristicScorer, IdentifierGenerator,

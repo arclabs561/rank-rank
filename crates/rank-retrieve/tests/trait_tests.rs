@@ -24,12 +24,8 @@ fn test_bm25_trait_interface() {
     use rank_retrieve::retriever::RetrieverBuilder;
 
     let mut index = InvertedIndex::new();
-    index
-        .add_document(0, vec!["test".to_string(), "document".to_string()])
-        .unwrap();
-    index
-        .add_document(1, vec!["another".to_string(), "test".to_string()])
-        .unwrap();
+    index.add_document(0, &["test".to_string(), "document".to_string()]);
+    index.add_document(1, &["another".to_string(), "test".to_string()]);
 
     let query = vec!["test".to_string()];
     let results = search(&index, &query, 10).unwrap();
@@ -45,8 +41,8 @@ fn test_dense_trait_interface() {
     use rank_retrieve::retriever::RetrieverBuilder;
 
     let mut retriever = DenseRetriever::new();
-    retriever.add_document(0, vec![1.0, 0.0]).unwrap();
-    retriever.add_document(1, vec![0.0, 1.0]).unwrap();
+    retriever.add_document(0, vec![1.0, 0.0]);
+    retriever.add_document(1, vec![0.0, 1.0]);
 
     let query = [1.0, 0.0];
     let results = search(&retriever, &query, 10).unwrap();
@@ -63,7 +59,7 @@ fn test_sparse_trait_interface() {
 
     let mut retriever = SparseRetriever::new();
     let doc0 = SparseVector::new_unchecked(vec![0, 1], vec![1.0, 0.5]);
-    retriever.add_document(0, doc0).unwrap();
+    retriever.add_document(0, doc0);
 
     let query = SparseVector::new_unchecked(vec![0], vec![1.0]);
     let results = search(&retriever, &query, 10).unwrap();
@@ -81,12 +77,11 @@ fn test_polymorphic_hybrid_search() {
 
     // Setup BM25 retriever
     let mut bm25 = InvertedIndex::new();
-    bm25.add_document(0, vec!["machine".to_string(), "learning".to_string()])
-        .unwrap();
+    bm25.add_document(0, &["machine".to_string(), "learning".to_string()]);
 
     // Setup dense retriever
     let mut dense = DenseRetriever::new();
-    dense.add_document(0, vec![1.0, 0.0]).unwrap();
+    dense.add_document(0, vec![1.0, 0.0]);
 
     // Both can be used polymorphically
     let bm25_query = vec!["machine".to_string()];

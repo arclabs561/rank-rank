@@ -5,11 +5,10 @@
 
 #[cfg(test)]
 mod tests {
-    use crate::test_helpers::{mock_dense_embed, mock_token_embed};
+    use crate::test_helpers::mock_token_embed;
     use proptest::prelude::*;
     use rank_rerank::colbert;
     use rank_rerank::simd;
-    use std::result::Result as StdResult;
 
     /// Property: Token pooling always reduces vector count (research: 50-66% for factor 2-3)
     #[test]

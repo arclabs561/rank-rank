@@ -15,8 +15,7 @@ The test helpers in `test_helpers.rs` are designed to work across all rank-* cra
 - `rank-fusion`: Result fusion (RRF, CombSUM, etc.)
 - `rank-rerank`: Reranking (ColBERT, MaxSim, etc.)
 - `rank-eval`: Evaluation metrics (nDCG, Precision, Recall, MRR, MAP)
-- `rank-learn`: Learning-to-rank
-- `rank-soft`: Soft ranking
+- `rank-soft`: Differentiable ranking operations and Learning to Rank algorithms (LambdaRank, Ranking SVM, neural LTR)
 
 ## Result Type Compatibility
 

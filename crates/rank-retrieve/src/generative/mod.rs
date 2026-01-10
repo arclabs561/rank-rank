@@ -227,10 +227,16 @@ impl<M: AutoregressiveModel> GenerativeRetriever<M> {
         let passage_scores = if k < self.passages.len() / 10 && k > 0 {
             // Use min-heap for top-k (more efficient for large corpora)
             // We need a wrapper for f32 since it doesn't implement Ord
-            #[derive(PartialEq, PartialOrd)]
+            #[derive(PartialEq)]
             struct ScoreWrapper(f32);
 
             impl Eq for ScoreWrapper {}
+
+            impl PartialOrd for ScoreWrapper {
+                fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+                    Some(self.cmp(other))
+                }
+            }
 
             impl Ord for ScoreWrapper {
                 fn cmp(&self, other: &Self) -> std::cmp::Ordering {
@@ -266,8 +272,8 @@ impl<M: AutoregressiveModel> GenerativeRetriever<M> {
                 .map(|std::cmp::Reverse((ScoreWrapper(score), doc_id))| (doc_id, score))
                 .collect();
 
-            // Sort descending (heap gives us ascending, so reverse)
-            result.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
+            // Sort descending (heap gives us ascending, so reverse) (unstable for better performance)
+            result.sort_unstable_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
             result
         } else {
             // For small k relative to n, full sort is more efficient
@@ -281,7 +287,7 @@ impl<M: AutoregressiveModel> GenerativeRetriever<M> {
                 .collect();
 
             passage_scores
-                .sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
+                .sort_unstable_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal)); // Unstable for better performance
             passage_scores.truncate(k);
             passage_scores
         };

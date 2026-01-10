@@ -1,6 +1,38 @@
-//! Real-world integration example: Qdrant vector database + rank-rank crates.
+//! Example: Real-world integration with Qdrant vector database.
 //!
-//! This example demonstrates a production-ready RAG pipeline using actual Qdrant client.
+//! This demonstrates a production-ready RAG pipeline:
+//! 1. Store embeddings in Qdrant
+//! 2. Retrieve candidates using Qdrant's HNSW index
+//! 3. Rerank with rank-rerank (MaxSim or cross-encoder)
+//!
+//! **What is Qdrant?**
+//! Qdrant is a production-ready vector database designed for similarity search.
+//! It provides persistent storage, horizontal scaling, and advanced filtering capabilities,
+//! making it ideal for production RAG systems.
+//!
+//! **Why use Qdrant with rank-retrieve?**
+//! - **Persistence**: Embeddings stored on disk, survive restarts
+//! - **Scalability**: Horizontal scaling for large corpora (100M+ documents)
+//! - **Performance**: Optimized HNSW indexes with configurable precision/recall trade-offs
+//! - **Filtering**: Metadata filtering (e.g., date ranges, categories) during retrieval
+//! - **Production features**: Replication, backups, monitoring, REST/gRPC APIs
+//!
+//! **Pipeline:**
+//! 1. **Indexing** (offline): Store document embeddings in Qdrant with metadata
+//! 2. **Retrieval** (online): Query Qdrant for approximate nearest neighbors
+//! 3. **Reranking** (online): Use rank-rerank for final precision
+//! 4. **Generation** (online): Pass reranked results to LLM for context
+//!
+//! **When to use:**
+//! - Production RAG systems requiring persistent storage
+//! - Large corpora (1M+ documents) requiring horizontal scaling
+//! - Need metadata filtering (e.g., date ranges, categories)
+//! - Multi-tenant systems requiring isolation
+//!
+//! **Performance:**
+//! - Indexing: ~100-1000 docs/sec (depends on embedding dimension)
+//! - Retrieval: ~5-20ms for 10M docs → 1000 candidates (depends on HNSW config)
+//! - Reranking: ~10-50ms for 1000 candidates → 100 results
 //!
 //! **Prerequisites:**
 //! - Qdrant running on localhost:6333 (or set QDRANT_URL env var)
