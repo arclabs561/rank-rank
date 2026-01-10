@@ -2,6 +2,8 @@
 target/
 **/*.rs.bk
 *.pdb
+# Ignore nested lockfiles (workspace root lockfile is tracked via !/Cargo.lock below)
+**/Cargo.lock
 
 # IDE
 .vscode/
@@ -73,3 +75,4 @@ credentials/
 # API keys (check scripts for references)
 # Note: Scripts use environment variables, never hardcode keys
 
+!/Cargo.lock

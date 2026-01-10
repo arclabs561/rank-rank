@@ -10,6 +10,7 @@ members = [
     "crates/rank-soft/rank-soft-python",
     "crates/rank-eval",
     "crates/rank-eval/rank-eval-python",
+    "crates/rank-rank",
 ]
 resolver = "2"
 

@@ -5514,6 +5514,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "rank-rank"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "clap",
+ "rank-eval",
+ "rank-fusion",
+ "rank-rerank",
+ "rank-retrieve",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "rank-rerank"
 version = "0.7.36"
 dependencies = [
